@@ -97,21 +97,68 @@ const markerColor  = r => BAND_COLORS[ratingBand(r)]
 const isIG         = r => ['AAA', 'AA', 'A', 'BBB'].includes(r)
 const markerRadius = p => 5 + ((p - 2.9) / (53.1 - 2.9)) * 11
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function IconFilter() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <line x1="1" y1="2.5" x2="11" y2="2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <line x1="3" y1="6" x2="9" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <line x1="5" y1="9.5" x2="7" y2="9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function IconChart() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <rect x="1" y="6.5" width="2.5" height="4.5" rx="0.5" fill="currentColor"/>
+      <rect x="4.75" y="4" width="2.5" height="7" rx="0.5" fill="currentColor"/>
+      <rect x="8.5" y="1.5" width="2.5" height="9.5" rx="0.5" fill="currentColor"/>
+    </svg>
+  )
+}
+
+function IconList() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+      <circle cx="2" cy="3" r="1" fill="currentColor"/>
+      <line x1="5" y1="3" x2="11" y2="3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="2" cy="6.5" r="1" fill="currentColor"/>
+      <line x1="5" y1="6.5" x2="11" y2="6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="2" cy="10" r="1" fill="currentColor"/>
+      <line x1="5" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function IconChevron({ open }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+      <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 // ─── Map infrastructure ───────────────────────────────────────────────────────
 
-// Creates markersPane (z650) and labelsPane (z700, no pointer events)
 function CreatePanes() {
   const map = useMap()
   useEffect(() => {
     if (!map.getPane('markersPane')) {
-      map.createPane('markersPane')
-      map.getPane('markersPane').style.zIndex = 650
+      const pane = map.createPane('markersPane')
+      pane.style.zIndex = 645
+      // Remove zoom animation so markers don't visually scale during flyTo
+      pane.classList.remove('leaflet-zoom-animated')
     }
     if (!map.getPane('labelsPane')) {
-      map.createPane('labelsPane')
-      map.getPane('labelsPane').style.zIndex = 700
-      map.getPane('labelsPane').style.pointerEvents = 'none'
+      const pane = map.createPane('labelsPane')
+      pane.style.zIndex = 700
+      pane.style.pointerEvents = 'none'
     }
+    // Tooltips must render above markers
+    const tooltipPane = map.getPane('tooltipPane')
+    if (tooltipPane) tooltipPane.style.zIndex = 660
   }, [map])
   return null
 }
@@ -122,7 +169,6 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
 
   useEffect(() => {
     onMapReady(map)
-    // Use setTimeout(0) so the container has its final pixel dimensions
     const t = setTimeout(() => {
       map.invalidateSize(false)
       map.fitBounds([[-68, -176], [82, 176]], { padding: [0, 0], animate: false })
@@ -134,7 +180,8 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
 
   useEffect(() => {
     if (!project) return
-    map.flyTo([project.lat, project.lng], 5, { duration: 0.8, easeLinearity: 0.35 })
+    // Smoother flyTo with longer duration and gentler easing
+    map.flyTo([project.lat, project.lng], 5, { duration: 1.0, easeLinearity: 0.2 })
     const handler = () => {
       const pt = map.latLngToContainerPoint([project.lat, project.lng])
       const sz = map.getSize()
@@ -211,8 +258,8 @@ function PillGroup({ options, value, onChange }) {
         return (
           <button key={opt} onClick={() => toggle(opt)} style={{
             background: active ? '#1D9E75' : 'transparent',
-            color: active ? '#030D07' : '#354D42',
-            border: `1px solid ${active ? '#1D9E75' : '#1A2A1E'}`,
+            color: active ? '#030D07' : '#5A8070',
+            border: `1px solid ${active ? '#1D9E75' : '#1E3328'}`,
             borderRadius: '5px', padding: '3px 9px',
             fontSize: '11px', fontWeight: active ? '700' : '400',
             cursor: 'pointer', transition: 'all 0.12s',
@@ -237,7 +284,7 @@ function CoBenefitDots({ score }) {
           background: i < score ? '#1D9E75' : '#162018',
         }} />
       ))}
-      <span style={{ fontSize: '11px', color: '#354D42', marginLeft: '3px', fontFamily: FONT_MONO }}>{score}/5</span>
+      <span style={{ fontSize: '11px', color: '#5A8070', marginLeft: '3px', fontFamily: FONT_MONO }}>{score}/5</span>
     </div>
   )
 }
@@ -245,16 +292,25 @@ function CoBenefitDots({ score }) {
 // ─── PremiumDial ──────────────────────────────────────────────────────────────
 
 function PremiumDial({ project, regionalStats }) {
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLive(true), 60)
+    return () => clearTimeout(t)
+  }, [])
+
   if (!regionalStats || regionalStats.max === regionalStats.min) return null
   const { min, max, avg } = regionalStats
   const position = Math.max(0, Math.min(1, (project.price - min) / (max - min)))
   const angleDeg = 180 - position * 180
-  const angleRad = (angleDeg * Math.PI) / 180
-  const cx = 110, cy = 105, r = 88, needleR = 78
-  const tipX = cx + needleR * Math.cos(angleRad)
-  const tipY = cy - needleR * Math.sin(angleRad)
   const pct = Math.round(((project.price - avg) / avg) * 100)
   const pos = pct >= 0
+
+  const cx = 110, cy = 105, r = 88, needleR = 78
+
+  // CSS rotation: needle drawn pointing up, rotated to final angle
+  // angleDeg=0 (right) → cssRot=90°, angleDeg=90 (up) → cssRot=0°, angleDeg=180 (left) → cssRot=-90°
+  const finalCssRotation = 90 - angleDeg
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -267,13 +323,22 @@ function PremiumDial({ project, regionalStats }) {
             <stop offset="100%" stopColor="#0F6E56" />
           </linearGradient>
         </defs>
+        {/* Track */}
         <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`} fill="none" stroke="#162018" strokeWidth="10" strokeLinecap="round" />
         <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`} fill="none" stroke="url(#dialGrad)" strokeWidth="8" strokeLinecap="round" />
-        <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="#D8E6DF" strokeWidth="2.5" strokeLinecap="round" />
+        {/* Animated needle — drawn pointing up, CSS-rotated to final angle */}
+        <g style={{
+          transformOrigin: `${cx}px ${cy}px`,
+          transform: `rotate(${live ? finalCssRotation : 0}deg)`,
+          transition: live ? 'transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
+        }}>
+          <line x1={cx} y1={cy} x2={cx} y2={cy - needleR} stroke="#D8E6DF" strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+        {/* Pivot dot (rendered above needle) */}
         <circle cx={cx} cy={cy} r="6" fill="#1D9E75" />
         <circle cx={cx} cy={cy} r="2.5" fill="#D8E6DF" />
-        <text x={cx-r+4} y={cy+16} fill="#2E4038" fontSize="10" textAnchor="middle" fontFamily={FONT_SANS}>low</text>
-        <text x={cx+r-4} y={cy+16} fill="#2E4038" fontSize="10" textAnchor="middle" fontFamily={FONT_SANS}>high</text>
+        <text x={cx-r+4} y={cy+16} fill="#4A6858" fontSize="10" textAnchor="middle" fontFamily={FONT_SANS}>low</text>
+        <text x={cx+r-4} y={cy+16} fill="#4A6858" fontSize="10" textAnchor="middle" fontFamily={FONT_SANS}>high</text>
       </svg>
       <div style={{ fontSize: '12.5px', fontWeight: '600', color: pos ? '#5DCAA5' : '#C8C46A', marginTop: '2px', fontFamily: FONT_MONO, letterSpacing: '-0.02em' }}>
         {pos ? '↑' : '↓'} {Math.abs(pct)}% {pos ? 'above' : 'below'} regional avg
@@ -299,7 +364,7 @@ function SpotPriceInfo() {
     <span ref={ref} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
       <button onClick={() => setOpen(o => !o)} style={{
         background: 'none', border: 'none', cursor: 'pointer',
-        color: open ? '#1D9E75' : '#2E4038', fontSize: '12px',
+        color: open ? '#1D9E75' : '#4A7060', fontSize: '12px',
         lineHeight: 1, padding: '0 2px', fontFamily: FONT_SANS,
       }} aria-label="info">ⓘ</button>
       {open && (
@@ -310,9 +375,9 @@ function SpotPriceInfo() {
           borderRadius: '8px', padding: '10px 12px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.7)', zIndex: 9999,
         }}>
-          <div style={{ fontSize: '11px', color: '#4A6858', lineHeight: 1.6, fontFamily: FONT_SANS }}>
+          <div style={{ fontSize: '11px', color: '#5A8878', lineHeight: 1.6, fontFamily: FONT_SANS }}>
             Spot price = market rate per tonne CO₂e. BBB+ credits average $26/t vs $14/t for BB−, a ~86% premium.{' '}
-            <span style={{ color: '#1E3028' }}>Source: Sylvera 2025.</span>
+            <span style={{ color: '#3A5848' }}>Source: Sylvera 2025.</span>
           </div>
           <div style={{ position: 'absolute', bottom: '-5px', left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: '8px', height: '8px', background: '#060B07', border: '1px solid #1A2A1E', borderTop: 'none', borderLeft: 'none' }} />
         </div>
@@ -331,7 +396,6 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
   const bg   = BADGE_BG[band]
   const fg   = BADGE_FG[band]
 
-  // Compute position relative to marker pixel coords
   const posStyle = useMemo(() => {
     if (!markerPos) return { top: 72, right: 16 }
     const { x, y, mapW, mapH } = markerPos
@@ -367,7 +431,7 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
         </div>
         <button onClick={onClose} style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid #1A2A1E',
-          borderRadius: '6px', color: '#354D42', cursor: 'pointer',
+          borderRadius: '6px', color: '#4A6858', cursor: 'pointer',
           fontSize: '15px', lineHeight: 1, width: '26px', height: '26px',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           fontFamily: FONT_SANS,
@@ -377,35 +441,35 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
       {/* Rating + Price */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px', marginBottom: '7px' }}>
         <div style={{ background: bg, borderRadius: '8px', padding: '10px 12px' }}>
-          <div style={{ fontSize: '9px', color: fg, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: FONT_SANS }}>Rating</div>
+          <div style={{ fontSize: '9px', color: fg, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: FONT_SANS }}>Rating</div>
           <div style={{ fontSize: '24px', fontWeight: '700', color: fg, fontFamily: FONT_MONO, letterSpacing: '-0.02em', lineHeight: 1 }}>{project.rating}</div>
         </div>
         <div style={{ background: '#0B1410', border: '1px solid #1A2A1E', borderRadius: '8px', padding: '10px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '9px', color: '#354D42', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT_SANS }}>Spot price</span>
+            <span style={{ fontSize: '9px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT_SANS }}>Spot price</span>
             <SpotPriceInfo />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
             <span style={{ fontSize: '20px', fontWeight: '400', color: '#C8A23A', fontFamily: FONT_MONO, letterSpacing: '-0.03em', lineHeight: 1 }}>${project.price}</span>
-            <span style={{ fontSize: '9px', color: '#2E4038', fontFamily: FONT_SANS }}>/tCO₂e</span>
+            <span style={{ fontSize: '9px', color: '#3A5848', fontFamily: FONT_SANS }}>/tCO₂e</span>
           </div>
         </div>
       </div>
 
       {/* Dial */}
       <div style={{ background: '#0B1410', border: '1px solid #1A2A1E', borderRadius: '8px', padding: '11px 12px 7px', marginBottom: '7px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ fontSize: '9px', color: '#2E4038', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '600', marginBottom: '2px', alignSelf: 'flex-start', fontFamily: FONT_SANS }}>Regional position</div>
-        <PremiumDial project={project} regionalStats={regionalStats} />
+        <div style={{ fontSize: '9px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '600', marginBottom: '2px', alignSelf: 'flex-start', fontFamily: FONT_SANS }}>Regional position</div>
+        <PremiumDial key={project.name} project={project} regionalStats={regionalStats} />
       </div>
 
       {/* Vintage + Co-benefits */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
         <div style={{ background: '#0B1410', border: '1px solid #1A2A1E', borderRadius: '8px', padding: '10px 12px' }}>
-          <div style={{ fontSize: '9px', color: '#2E4038', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: FONT_SANS }}>Vintage</div>
+          <div style={{ fontSize: '9px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: FONT_SANS }}>Vintage</div>
           <div style={{ fontSize: '18px', fontWeight: '400', color: '#D8E6DF', fontFamily: FONT_MONO }}>{project.vintage}</div>
         </div>
         <div style={{ background: '#0B1410', border: '1px solid #1A2A1E', borderRadius: '8px', padding: '10px 12px' }}>
-          <div style={{ fontSize: '9px', color: '#2E4038', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '7px', fontFamily: FONT_SANS }}>Co-benefits</div>
+          <div style={{ fontSize: '9px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '7px', fontFamily: FONT_SANS }}>Co-benefits</div>
           <CoBenefitDots score={project.coBenefit} />
         </div>
       </div>
@@ -413,21 +477,19 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
   )
 }
 
-// ─── Walkthrough modal ────────────────────────────────────────────────────────
+// ─── Walkthrough modal (tabbed) ───────────────────────────────────────────────
 
-function WTSection({ title, children }) {
-  return (
-    <div style={{ marginBottom: '22px' }}>
-      <div style={{ fontSize: '9px', fontWeight: '700', color: '#1A2A1E', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '10px', fontFamily: FONT_SANS }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  )
-}
+const WT_TABS = [
+  { id: 'ratings', label: 'Ratings' },
+  { id: 'map',     label: 'Map' },
+  { id: 'sidebar', label: 'Sidebar' },
+  { id: 'detail',  label: 'Detail Card' },
+]
 
 function WalkthroughModal({ onClose }) {
   const [dontShow, setDontShow] = useState(false)
+  const [tab, setTab] = useState('ratings')
+
   const close = () => {
     if (dontShow) localStorage.setItem('cpe_seen', '1')
     onClose()
@@ -436,100 +498,116 @@ function WalkthroughModal({ onClose }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.82)',
+      background: 'rgba(0,0,0,0.85)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(5px)',
+      backdropFilter: 'blur(6px)',
     }}>
       <div style={{
-        background: '#060B07', border: '1px solid #162018',
+        background: '#060B07', border: '1px solid #1E3328',
         borderRadius: '14px', width: '540px', maxHeight: '88vh',
         overflowY: 'auto', padding: '28px',
       }} className="panel-scroll">
+
         {/* Header */}
-        <div style={{ marginBottom: '26px' }}>
+        <div style={{ marginBottom: '22px' }}>
           <div style={{ fontSize: '22px', fontWeight: '800', color: '#D8E6DF', fontFamily: FONT_SANS, letterSpacing: '-0.025em', marginBottom: '5px' }}>
             Carbon Project Explorer
           </div>
-          <div style={{ fontSize: '12.5px', color: '#2E4038', fontFamily: FONT_SANS }}>
+          <div style={{ fontSize: '12.5px', color: '#6A9080', fontFamily: FONT_SANS }}>
             A guide to ratings, map navigation, and data interpretation
           </div>
         </div>
 
-        {/* Rating system */}
-        <WTSection title="Sylvera Rating System">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '3px', marginBottom: '22px', background: '#040807', borderRadius: '9px', padding: '3px' }}>
+          {WT_TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, padding: '8px 6px', borderRadius: '6px',
+              background: tab === t.id ? '#0D2018' : 'transparent',
+              border: `1px solid ${tab === t.id ? '#1D9E75' : 'transparent'}`,
+              color: tab === t.id ? '#5DCAA5' : '#4A7060',
+              fontSize: '11px', fontWeight: tab === t.id ? '600' : '400',
+              cursor: 'pointer', fontFamily: FONT_SANS,
+              transition: 'all 0.15s',
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* Tab: Ratings */}
+        {tab === 'ratings' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
             {[
               { band: 'AAA / AA / A',  label: 'Investment Grade',        color: '#5DCAA5', bg: '#041E12', desc: 'Highest quality. Rigorous validation, fully additional and permanent credits.' },
               { band: 'BBB / BB',      label: 'Near Investment Grade',    color: '#5DCAA5', bg: '#071F18', desc: 'Solid quality. Strong methodology with minor data or process gaps.' },
               { band: 'B / CCC',       label: 'Below Investment Grade',   color: '#C8C46A', bg: '#1A1A08', desc: 'Below average quality. Significant methodology or additionality concerns.' },
               { band: 'CC / D',        label: 'Speculative / Default',    color: '#E09090', bg: '#1A0808', desc: 'High risk. Serious concerns about credit integrity or permanence.' },
-            ].map(r => (
-              <div key={r.band} style={{ background: r.bg, border: `1px solid ${r.color}18`, borderRadius: '8px', padding: '10px 14px', display: 'flex', gap: '14px' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '13px', fontWeight: '600', color: r.color, minWidth: '76px', paddingTop: '1px', flexShrink: 0 }}>{r.band}</div>
+            ].map(item => (
+              <div key={item.band} style={{ background: item.bg, border: `1px solid ${item.color}22`, borderRadius: '8px', padding: '12px 14px', display: 'flex', gap: '14px' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '13px', fontWeight: '600', color: item.color, minWidth: '76px', paddingTop: '1px', flexShrink: 0 }}>{item.band}</div>
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: r.color, fontFamily: FONT_SANS, marginBottom: '2px' }}>{r.label}</div>
-                  <div style={{ fontSize: '11px', color: '#354D42', fontFamily: FONT_SANS, lineHeight: 1.55 }}>{r.desc}</div>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: item.color, fontFamily: FONT_SANS, marginBottom: '3px' }}>{item.label}</div>
+                  <div style={{ fontSize: '11.5px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{item.desc}</div>
                 </div>
               </div>
             ))}
           </div>
-        </WTSection>
+        )}
 
-        {/* Map */}
-        <WTSection title="Map Navigation">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Tab: Map */}
+        {tab === 'map' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              ['Circle markers', 'Each dot = one carbon project. Circle size scales with spot price — larger = more expensive.', '#1D9E75'],
-              ['Click a marker', 'Zooms into that project\'s location and opens a detail card to the right of the marker.', '#1D9E75'],
-              ['Hover a country', 'Highlights the country boundary and shows its name.', '#1D9E75'],
-              ['Click map background', 'Closes the detail card and returns to full overview.', '#354D42'],
-            ].map(([k, v, c]) => (
-              <div key={k} style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '100px', paddingTop: '1px', flexShrink: 0 }}>{k}</div>
-                <div style={{ fontSize: '11.5px', color: '#354D42', fontFamily: FONT_SANS, lineHeight: 1.55 }}>{v}</div>
+              { key: 'Circle markers', val: 'Each dot = one carbon project. Circle size scales with spot price — larger = more expensive.', c: '#1D9E75' },
+              { key: 'Click a marker', val: "Zooms into that project's location and opens a detail card next to the marker.", c: '#1D9E75' },
+              { key: 'Hover a country', val: 'Highlights the country boundary. Country labels appear when zoomed in.', c: '#1D9E75' },
+              { key: 'Click map background', val: 'Closes the detail card and returns to full overview.', c: '#5DCAA5' },
+            ].map(({ key, val, c }) => (
+              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '110px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
+                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
               </div>
             ))}
           </div>
-        </WTSection>
+        )}
 
-        {/* Sidebar */}
-        <WTSection title="Sidebar & Filters">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Tab: Sidebar */}
+        {tab === 'sidebar' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              ['Filters', 'Filter by Region, Project Type, and Rating. Multi-select works as OR — picking Africa + SE Asia shows both.', '#C8A23A'],
-              ['Stats', 'Average spot price, IG premium, and project count all update live as you apply filters.', '#C8A23A'],
-              ['Project list', 'Sorted by rating then price. Click any row to zoom the map and open its detail card.', '#C8A23A'],
-            ].map(([k, v, c]) => (
-              <div key={k} style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '100px', paddingTop: '1px', flexShrink: 0 }}>{k}</div>
-                <div style={{ fontSize: '11.5px', color: '#354D42', fontFamily: FONT_SANS, lineHeight: 1.55 }}>{v}</div>
+              { key: 'Filters', val: 'Filter by Region, Project Type, and Rating. Multi-select works as OR — picking Africa + SE Asia shows both.', c: '#C8A23A' },
+              { key: 'Overview', val: 'Average spot price, IG premium, and project count all update live as you apply filters.', c: '#C8A23A' },
+              { key: 'Projects', val: 'Sorted by rating then price. Click any row to zoom the map and open its detail card. Collapsed by default — click the header to expand.', c: '#C8A23A' },
+            ].map(({ key, val, c }) => (
+              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '80px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
+                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
               </div>
             ))}
           </div>
-        </WTSection>
+        )}
 
-        {/* Detail card */}
-        <WTSection title="Project Detail Card">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Tab: Detail Card */}
+        {tab === 'detail' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              ['Spot price', 'Current market rate per tonne of CO₂ equivalent removed or avoided. Shown in amber.'],
-              ['Regional dial', 'Semicircle gauge showing where this project\'s price sits within its regional peer group (min → max). Needle near right = premium-priced.'],
-              ['Co-benefits', 'Score out of 5 for biodiversity, community welfare, and ecosystem services beyond carbon.'],
-              ['Vintage', 'Year the carbon credits were generated, not purchased.'],
-            ].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: '#5DCAA5', minWidth: '100px', paddingTop: '1px', flexShrink: 0 }}>{k}</div>
-                <div style={{ fontSize: '11.5px', color: '#354D42', fontFamily: FONT_SANS, lineHeight: 1.55 }}>{v}</div>
+              { key: 'Spot price', val: 'Current market rate per tonne of CO₂ equivalent removed or avoided. Shown in amber.' },
+              { key: 'Regional dial', val: "Semicircle gauge showing where this project's price sits within its regional peer group (min → max). Needle near right = premium-priced. Animates on open." },
+              { key: 'Co-benefits', val: 'Score out of 5 for biodiversity, community welfare, and ecosystem services beyond carbon.' },
+              { key: 'Vintage', val: 'Year the carbon credits were generated, not purchased.' },
+            ].map(({ key, val }) => (
+              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: '#5DCAA5', minWidth: '100px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
+                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
               </div>
             ))}
           </div>
-        </WTSection>
+        )}
 
         {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid #162018' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '20px', marginTop: '22px', borderTop: '1px solid #1E3328' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} style={{ accentColor: '#1D9E75', width: '13px', height: '13px' }} />
-            <span style={{ fontSize: '11.5px', color: '#2E4038', fontFamily: FONT_SANS }}>Don't show on next visit</span>
+            <span style={{ fontSize: '11.5px', color: '#4A7060', fontFamily: FONT_SANS }}>Don't show on next visit</span>
           </label>
           <button onClick={close} style={{
             background: '#1D9E75', border: 'none', borderRadius: '7px',
@@ -567,10 +645,10 @@ function ProjectRow({ project, isSelected, onClick }) {
     >
       <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '12px', fontWeight: '500', color: isSelected ? '#A8D4C0' : '#8AADA0', fontFamily: FONT_SANS, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>
+        <div style={{ fontSize: '12px', fontWeight: '500', color: isSelected ? '#A8D4C0' : '#9AB8AC', fontFamily: FONT_SANS, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>
           {project.name}
         </div>
-        <div style={{ fontSize: '10px', color: '#253530', fontFamily: FONT_SANS, marginTop: '1px' }}>
+        <div style={{ fontSize: '10px', color: '#4A6858', fontFamily: FONT_SANS, marginTop: '1px' }}>
           {project.type} · {project.region}
         </div>
       </div>
@@ -582,6 +660,36 @@ function ProjectRow({ project, isSelected, onClick }) {
   )
 }
 
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SectionHeader({ icon, label, collapsible, open, onToggle }) {
+  const inner = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#1D9E75' }}>
+      {icon}
+      <span style={{ fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: FONT_SANS }}>
+        {label}
+      </span>
+      {collapsible && (
+        <div style={{ marginLeft: 'auto', color: '#3A5848' }}>
+          <IconChevron open={open} />
+        </div>
+      )}
+    </div>
+  )
+
+  if (collapsible) {
+    return (
+      <button onClick={onToggle} style={{
+        width: '100%', background: 'none', border: 'none', padding: '0',
+        cursor: 'pointer', textAlign: 'left',
+      }}>
+        {inner}
+      </button>
+    )
+  }
+  return inner
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -590,10 +698,10 @@ export default function App() {
   const [typeFilter, setTypeFilter]     = useState([])
   const [ratingFilter, setRatingFilter] = useState([])
   const [worldGeo, setWorldGeo]         = useState(null)
-  const [markerPos, setMarkerPos]       = useState(null)  // pixel position of selected marker
+  const [markerPos, setMarkerPos]       = useState(null)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(false)
 
-  // Auto-open walkthrough on first visit
   useEffect(() => {
     if (!localStorage.getItem('cpe_seen')) setShowWalkthrough(true)
   }, [])
@@ -603,7 +711,7 @@ export default function App() {
       if (prev?.name === p.name) { setMarkerPos(null); return null }
       return p
     })
-    setMarkerPos(null)  // reset while map flies
+    setMarkerPos(null)
   }, [])
 
   const onMapReady = useCallback(() => {}, [])
@@ -659,7 +767,7 @@ export default function App() {
   }, [selected])
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100dvh', background: '#040807', fontFamily: FONT_SANS }}>
+    <div style={{ display: 'flex', width: '100%', height: '100dvh', background: '#000', fontFamily: FONT_SANS }}>
 
       {showWalkthrough && <WalkthroughModal onClose={() => setShowWalkthrough(false)} />}
 
@@ -681,7 +789,7 @@ export default function App() {
             onMapClick={onMapClick}
           />
 
-          {/* ESRI Dark Gray Base — English labels on reference layer */}
+          {/* ESRI Dark Gray Base — no labels */}
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
             attribution='Tiles &copy; <a href="https://esri.com">Esri</a>'
@@ -689,9 +797,11 @@ export default function App() {
             noWrap={true}
             bounds={[[-90, -180], [90, 180]]}
           />
+          {/* English labels — only visible at zoom 3+ to avoid clutter at world view */}
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
             maxZoom={16}
+            minZoom={3}
             noWrap={true}
             pane="labelsPane"
             bounds={[[-90, -180], [90, 180]]}
@@ -712,30 +822,27 @@ export default function App() {
           <MarkerLayer filtered={filtered} selected={selected} onSelect={onSelect} />
         </MapContainer>
 
-        {/* Title + walkthrough trigger */}
-        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            background: 'rgba(4,8,7,0.96)', border: '1px solid #162018',
-            borderRadius: '10px', padding: '12px 16px', backdropFilter: 'blur(16px)',
-            pointerEvents: 'none',
-          }}>
-            <div style={{ fontSize: '17px', fontWeight: '800', color: '#C8E0D4', letterSpacing: '-0.025em', fontFamily: FONT_SANS }}>
+        {/* Title — floating text, no container box */}
+        <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ pointerEvents: 'none' }}>
+            <div style={{
+              fontSize: '22px', fontWeight: '800', color: '#D0E8DC',
+              letterSpacing: '-0.03em', fontFamily: FONT_SANS,
+              textShadow: '0 2px 14px rgba(0,0,0,0.95), 0 1px 4px rgba(0,0,0,0.9)',
+            }}>
               Carbon Project Explorer
-            </div>
-            <div style={{ fontSize: '10px', color: '#253530', marginTop: '3px', fontFamily: FONT_SANS, letterSpacing: '0.01em' }}>
-              {PROJECTS.length} projects · Sylvera ratings × spot prices
             </div>
           </div>
           <button
             onClick={() => setShowWalkthrough(true)}
             title="How to use"
             style={{
-              width: '34px', height: '34px',
-              background: 'rgba(4,8,7,0.96)', border: '1px solid #1D9E75',
+              width: '30px', height: '30px',
+              background: 'rgba(4,8,7,0.92)', border: '1px solid #1D9E75',
               borderRadius: '50%', color: '#1D9E75',
               cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(16px)', fontFamily: FONT_MONO,
+              backdropFilter: 'blur(12px)', fontFamily: FONT_MONO,
             }}
           >?</button>
         </div>
@@ -743,10 +850,10 @@ export default function App() {
         {/* Legend */}
         <div style={{
           position: 'absolute', bottom: 28, left: 16, zIndex: 1000, pointerEvents: 'none',
-          background: 'rgba(4,8,7,0.96)', border: '1px solid #162018',
+          background: 'rgba(4,8,7,0.94)', border: '1px solid #162018',
           borderRadius: '10px', padding: '11px 13px', backdropFilter: 'blur(16px)',
         }}>
-          <div style={{ fontSize: '8.5px', color: '#1A2A1E', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '8px', fontWeight: '700', fontFamily: FONT_SANS }}>Sylvera Rating</div>
+          <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '8px', fontWeight: '700', fontFamily: FONT_SANS }}>Sylvera Rating</div>
           {[
             { label: 'AAA / AA / A', color: '#1D9E75' },
             { label: 'BBB / BB',     color: '#5DCAA5' },
@@ -755,13 +862,13 @@ export default function App() {
           ].map(({ label, color }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '5px' }}>
               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: '10px', color: '#354D42', fontFamily: FONT_SANS }}>{label}</span>
+              <span style={{ fontSize: '10px', color: '#7A9880', fontFamily: FONT_SANS }}>{label}</span>
             </div>
           ))}
-          <div style={{ borderTop: '1px solid #162018', marginTop: '7px', paddingTop: '7px', fontSize: '9.5px', color: '#1A2A1E', fontFamily: FONT_SANS }}>Circle size = spot price</div>
+          <div style={{ borderTop: '1px solid #162018', marginTop: '7px', paddingTop: '7px', fontSize: '9.5px', color: '#4A7060', fontFamily: FONT_SANS }}>Circle size = spot price</div>
         </div>
 
-        {/* Project modal — positioned to right of clicked marker */}
+        {/* Project modal */}
         {selected && (
           <ProjectModal
             project={selected}
@@ -780,76 +887,88 @@ export default function App() {
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
 
-        {/* Filters */}
+        {/* Filters section */}
         <div style={{ padding: '16px 14px 14px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
-          <div style={{ fontSize: '9px', fontWeight: '800', color: '#1D9E75', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: FONT_SANS, marginBottom: '13px' }}>
-            Filters
+          <div style={{ marginBottom: '13px' }}>
+            <SectionHeader icon={<IconFilter />} label="Filters" />
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '9px', color: '#1A2A1E', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Region</div>
+            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Region</div>
             <PillGroup options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '9px', color: '#1A2A1E', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Project type</div>
+            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Project type</div>
             <PillGroup options={TYPES} value={typeFilter} onChange={setTypeFilter} />
           </div>
           <div>
-            <div style={{ fontSize: '9px', color: '#1A2A1E', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Rating</div>
+            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Rating</div>
             <PillGroup options={RATINGS} value={ratingFilter} onChange={setRatingFilter} />
           </div>
         </div>
 
-        {/* Bold stats — flat, no gradients */}
-        <div style={{ padding: '20px 16px 18px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
-          {/* Avg price — hero number in amber */}
+        {/* Overview / Stats section */}
+        <div style={{ padding: '16px 16px 18px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader icon={<IconChart />} label="Overview" />
+          </div>
+
           {avgPrice && (
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontSize: '8.5px', color: '#1A2A1E', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Avg spot price</div>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Avg spot price</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
                 <span style={{ fontSize: '44px', fontWeight: '800', color: '#C8A23A', letterSpacing: '-0.05em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
-                <span style={{ fontSize: '11px', color: '#253530', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
+                <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
               </div>
             </div>
           )}
 
-          {/* IG premium */}
           {igPremium !== null && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '8.5px', color: '#1A2A1E', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>IG vs sub-IG premium</div>
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>IG vs sub-IG premium</div>
               <span style={{ fontSize: '28px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
             </div>
           )}
 
-          {/* Count */}
           <div>
-            <div style={{ fontSize: '8.5px', color: '#1A2A1E', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Projects</div>
+            <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Projects</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               <span style={{ fontSize: '28px', fontWeight: '700', color: '#6A9080', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
-              <span style={{ fontSize: '11px', color: '#1A2A1E', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
+              <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
             </div>
           </div>
         </div>
 
-        {/* Project list */}
-        <div className="panel-scroll" style={{ flex: 1, overflowY: 'auto', padding: '10px 8px 0' }}>
-          <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#162018', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px', padding: '0 3px', fontFamily: FONT_SANS }}>
-            Projects
-          </div>
-          {sortedFiltered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '28px 12px', color: '#1A2A1E', fontSize: '12px', fontFamily: FONT_SANS }}>No projects match filters</div>
-          ) : sortedFiltered.map(p => (
-            <ProjectRow
-              key={p.name}
-              project={p}
-              isSelected={selected?.name === p.name}
-              onClick={() => onSelect(p)}
+        {/* Projects section — collapsible */}
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: projectsOpen ? 1 : 'none', flexShrink: 0 }}>
+          <div style={{ padding: '12px 14px 10px', flexShrink: 0 }}>
+            <SectionHeader
+              icon={<IconList />}
+              label={`Projects (${filtered.length})`}
+              collapsible
+              open={projectsOpen}
+              onToggle={() => setProjectsOpen(o => !o)}
             />
-          ))}
-          <div style={{ height: '12px' }} />
+          </div>
+
+          {projectsOpen && (
+            <div className="panel-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 8px 0' }}>
+              {sortedFiltered.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '28px 12px', color: '#3A5848', fontSize: '12px', fontFamily: FONT_SANS }}>No projects match filters</div>
+              ) : sortedFiltered.map(p => (
+                <ProjectRow
+                  key={p.name}
+                  project={p}
+                  isSelected={selected?.name === p.name}
+                  onClick={() => onSelect(p)}
+                />
+              ))}
+              <div style={{ height: '12px' }} />
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '8px 14px', borderTop: '1px solid #0E1810', fontSize: '9px', color: '#111C14', lineHeight: 1.5, flexShrink: 0, fontFamily: FONT_SANS }}>
+        <div style={{ padding: '8px 14px', borderTop: '1px solid #0E1810', fontSize: '9px', color: '#3A5848', lineHeight: 1.5, flexShrink: 0, marginTop: 'auto', fontFamily: FONT_SANS }}>
           Illustrative data. Calibrated to Sylvera State of Carbon Credits 2025.
         </div>
       </div>
@@ -862,7 +981,7 @@ export default function App() {
 function Tag({ children }) {
   return (
     <span style={{
-      background: 'rgba(29,158,117,0.07)', color: '#354D42',
+      background: 'rgba(29,158,117,0.07)', color: '#5A8070',
       padding: '2px 8px', borderRadius: '4px', fontSize: '10.5px',
       border: '1px solid #162018', fontFamily: FONT_SANS,
     }}>
