@@ -7,7 +7,7 @@ body {
   padding: 0;
   background: #0A1A14;
   color: #F0F4F2;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   height: 100dvh;
   overflow: hidden;
 }
@@ -40,12 +40,15 @@ body {
 }
 .leaflet-control-attribution a { color: #3A5048 !important; }
 
-/* Pulse on selected marker */
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.9; }
-  70% { transform: scale(2); opacity: 0; }
-  100% { transform: scale(2); opacity: 0; }
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+.project-modal { animation: modalSlideIn 0.18s ease forwards; }
+.project-modal::-webkit-scrollbar { width: 3px; }
+.project-modal::-webkit-scrollbar-track { background: transparent; }
+.project-modal::-webkit-scrollbar-thumb { background: #1E3328; border-radius: 2px; }
 
 .leaflet-tooltip {
   background: #111F19 !important;
