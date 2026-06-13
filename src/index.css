@@ -23,7 +23,7 @@ body {
 }
 
 /* Leaflet overrides */
-.leaflet-container { background: #0A1A14 !important; }
+.leaflet-container { background: #060C09 !important; }
 .leaflet-control-zoom a {
   background: #111F19 !important;
   color: #8FA89F !important;
