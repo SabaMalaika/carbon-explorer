@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, CircleMarker, Tooltip, GeoJSON, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
-const FONT_SANS = "'DM Sans', system-ui, sans-serif"
+const FONT_SANS = "'Geologica', system-ui, sans-serif"
 const FONT_MONO = "'JetBrains Mono', monospace"
+const SIDEBAR_W = 330
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -266,7 +267,7 @@ function PillGroup({ options, value, onChange }) {
             color: active ? '#030D07' : '#5A8070',
             border: `1px solid ${active ? '#1D9E75' : '#1E3328'}`,
             borderRadius: '5px', padding: '3px 9px',
-            fontSize: '11px', fontWeight: active ? '700' : '400',
+            fontSize: '13px', fontWeight: active ? '700' : '400',
             cursor: 'pointer', transition: 'all 0.12s',
             fontFamily: FONT_SANS, letterSpacing: '0.01em',
           }}>
@@ -443,12 +444,13 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
   const animatedPrice = useCountUp(project.price)
 
   const posStyle = useMemo(() => {
-    if (!markerPos) return { top: 72, right: 16 }
+    if (!markerPos) return { top: 72, left: 16 }
     const { x, y, mapW, mapH } = markerPos
     const OFF = 22, PAD = 14
+    const rightBound = mapW - SIDEBAR_W - PAD
     let left = x + OFF
     let top  = y - MODAL_H / 2
-    if (left + MODAL_W > mapW - PAD) left = x - MODAL_W - OFF
+    if (left + MODAL_W > rightBound) left = x - MODAL_W - OFF
     if (left < PAD) left = PAD
     if (top < 72) top = 72
     if (top + MODAL_H > mapH - PAD) top = mapH - MODAL_H - PAD
@@ -690,10 +692,10 @@ function ProjectRow({ project, isSelected, onClick }) {
     >
       <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '12px', fontWeight: '500', color: isSelected ? '#A8D4C0' : '#9AB8AC', fontFamily: FONT_SANS, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>
+        <div style={{ fontSize: '14px', fontWeight: '500', color: isSelected ? '#A8D4C0' : '#9AB8AC', fontFamily: FONT_SANS, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>
           {project.name}
         </div>
-        <div style={{ fontSize: '10px', color: '#4A6858', fontFamily: FONT_SANS, marginTop: '1px' }}>
+        <div style={{ fontSize: '12px', color: '#4A6858', fontFamily: FONT_SANS, marginTop: '1px' }}>
           {project.type} · {project.region}
         </div>
       </div>
@@ -711,7 +713,7 @@ function SectionHeader({ icon, label, collapsible, open, onToggle }) {
   const inner = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#1D9E75' }}>
       {icon}
-      <span style={{ fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: FONT_SANS }}>
+      <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS }}>
         {label}
       </span>
       {collapsible && (
@@ -746,9 +748,19 @@ export default function App() {
   const [markerPos, setMarkerPos]       = useState(null)
   const [showWalkthrough, setShowWalkthrough] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
+  const [sidebarVisible, setSidebarVisible] = useState(false)
 
   useEffect(() => {
-    if (!localStorage.getItem('cpe_seen')) setShowWalkthrough(true)
+    if (!localStorage.getItem('cpe_seen')) {
+      setShowWalkthrough(true)
+    } else {
+      setTimeout(() => setSidebarVisible(true), 200)
+    }
+  }, [])
+
+  const handleWalkthroughClose = useCallback(() => {
+    setShowWalkthrough(false)
+    setTimeout(() => setSidebarVisible(true), 120)
   }, [])
 
   const onSelect = useCallback((p) => {
@@ -812,12 +824,12 @@ export default function App() {
   }, [selected])
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100dvh', background: '#000', fontFamily: FONT_SANS }}>
+    <div style={{ position: 'relative', width: '100%', height: '100dvh', background: '#000', fontFamily: FONT_SANS }}>
 
-      {showWalkthrough && <WalkthroughModal onClose={() => setShowWalkthrough(false)} />}
+      {showWalkthrough && <WalkthroughModal onClose={handleWalkthroughClose} />}
 
-      {/* ── Map ─────────────────────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+      {/* ── Map — fills entire viewport ─────────────────────── */}
+      <div style={{ position: 'absolute', inset: 0 }}>
         <MapContainer
           center={[20, 10]} zoom={2} minZoom={1}
           style={{ width: '100%', height: '100%' }}
@@ -871,7 +883,7 @@ export default function App() {
         <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ pointerEvents: 'none' }}>
             <div style={{
-              fontSize: '22px', fontWeight: '800', color: '#D0E8DC',
+              fontSize: '28px', fontWeight: '900', color: '#D0E8DC',
               letterSpacing: '-0.03em', fontFamily: FONT_SANS,
               textShadow: '0 2px 14px rgba(0,0,0,0.95), 0 1px 4px rgba(0,0,0,0.9)',
             }}>
@@ -898,7 +910,7 @@ export default function App() {
           background: 'rgba(4,8,7,0.94)', border: '1px solid #162018',
           borderRadius: '10px', padding: '11px 13px', backdropFilter: 'blur(16px)',
         }}>
-          <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '8px', fontWeight: '700', fontFamily: FONT_SANS }}>Sylvera Rating</div>
+          <div style={{ fontSize: '11px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', marginBottom: '8px', fontWeight: '700', fontFamily: FONT_SANS }}>Sylvera Rating</div>
           {[
             { label: 'AAA / AA / A', color: '#1D9E75' },
             { label: 'BBB / BB',     color: '#5DCAA5' },
@@ -907,10 +919,10 @@ export default function App() {
           ].map(({ label, color }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '5px' }}>
               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: '10px', color: '#7A9880', fontFamily: FONT_SANS }}>{label}</span>
+              <span style={{ fontSize: '12px', color: '#7A9880', fontFamily: FONT_SANS }}>{label}</span>
             </div>
           ))}
-          <div style={{ borderTop: '1px solid #162018', marginTop: '7px', paddingTop: '7px', fontSize: '9.5px', color: '#4A7060', fontFamily: FONT_SANS }}>Circle size = spot price</div>
+          <div style={{ borderTop: '1px solid #162018', marginTop: '7px', paddingTop: '7px', fontSize: '11px', color: '#4A7060', fontFamily: FONT_SANS }}>Circle size = spot price</div>
         </div>
 
         {/* Project modal */}
@@ -924,13 +936,19 @@ export default function App() {
         )}
       </div>
 
-      {/* ── Sidebar ───────────────────────────────────────── */}
-      <div style={{
-        width: '295px', flexShrink: 0, height: '100dvh',
-        background: '#040807',
-        borderLeft: '1px solid #0E1810',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
+      {/* ── Sidebar — glassmorphism overlay ───────────────── */}
+      <div
+        className={sidebarVisible ? 'sidebar-panel slide-in' : 'sidebar-panel'}
+        style={{
+          position: 'absolute', top: 0, right: 0, height: '100dvh',
+          width: `${SIDEBAR_W}px`, zIndex: 900,
+          background: 'linear-gradient(165deg, rgba(4,22,14,0.92) 0%, rgba(2,12,8,0.95) 100%)',
+          borderLeft: '1px solid rgba(29,158,117,0.15)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}
+      >
 
         {/* Filters section */}
         <div style={{ padding: '16px 14px 14px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
@@ -938,15 +956,15 @@ export default function App() {
             <SectionHeader icon={<IconFilter />} label="Filters" />
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Region</div>
+            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Region</div>
             <PillGroup options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Project type</div>
+            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Project type</div>
             <PillGroup options={TYPES} value={typeFilter} onChange={setTypeFilter} />
           </div>
           <div>
-            <div style={{ fontSize: '9px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Rating</div>
+            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Rating</div>
             <PillGroup options={RATINGS} value={ratingFilter} onChange={setRatingFilter} />
           </div>
         </div>
@@ -959,9 +977,9 @@ export default function App() {
 
           {avgPrice && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Avg spot price</div>
+              <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Avg spot price</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                <span style={{ fontSize: '44px', fontWeight: '800', color: '#C8A23A', letterSpacing: '-0.05em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
+                <span style={{ fontSize: '56px', fontWeight: '800', color: '#C8A23A', letterSpacing: '-0.05em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
                 <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
               </div>
             </div>
@@ -969,15 +987,15 @@ export default function App() {
 
           {igPremium !== null && (
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>IG vs sub-IG premium</div>
-              <span style={{ fontSize: '28px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
+              <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>IG vs sub-IG premium</div>
+              <span style={{ fontSize: '38px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
             </div>
           )}
 
           <div>
-            <div style={{ fontSize: '8.5px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Projects</div>
+            <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Projects</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '28px', fontWeight: '700', color: '#6A9080', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
+              <span style={{ fontSize: '38px', fontWeight: '700', color: '#6A9080', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
               <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
             </div>
           </div>
@@ -1013,7 +1031,7 @@ export default function App() {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '8px 14px', borderTop: '1px solid #0E1810', fontSize: '9px', color: '#3A5848', lineHeight: 1.5, flexShrink: 0, marginTop: 'auto', fontFamily: FONT_SANS }}>
+        <div style={{ padding: '8px 14px', borderTop: '1px solid #0E1810', fontSize: '11px', color: '#3A5848', lineHeight: 1.5, flexShrink: 0, marginTop: 'auto', fontFamily: FONT_SANS }}>
           Illustrative data. Calibrated to Sylvera State of Carbon Credits 2025.
         </div>
       </div>
