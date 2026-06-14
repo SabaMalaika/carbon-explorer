@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, CircleMarker, Tooltip, GeoJSON, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -366,39 +367,68 @@ function PremiumDial({ project, regionalStats }) {
 
 function SpotPriceInfo() {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+
+  const handleClick = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 8, left: r.left + r.width / 2 })
+    }
+    setOpen(o => !o)
+  }
 
   useEffect(() => {
     if (!open) return
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const h = e => { if (!btnRef.current?.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-      <button onClick={() => setOpen(o => !o)} style={{
+    <>
+      <button ref={btnRef} onClick={handleClick} style={{
         background: 'none', border: 'none', cursor: 'pointer',
         color: open ? '#1D9E75' : '#4A7060', fontSize: '12px',
         lineHeight: 1, padding: '0 2px', fontFamily: FONT_SANS,
       }} aria-label="info">ⓘ</button>
-      {open && (
+      {open && createPortal(
         <div style={{
-          position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%',
+          position: 'fixed', top: pos.top, left: pos.left,
           transform: 'translateX(-50%)', width: '230px',
           background: '#060B07', border: '1px solid #1A2A1E',
           borderRadius: '8px', padding: '10px 12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.7)', zIndex: 9999,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.7)', zIndex: 99999,
         }}>
           <div style={{ fontSize: '11px', color: '#5A8878', lineHeight: 1.6, fontFamily: FONT_SANS }}>
             Spot price = market rate per tonne CO₂e. BBB+ credits average $26/t vs $14/t for BB−, a ~86% premium.{' '}
             <span style={{ color: '#3A5848' }}>Source: Sylvera 2025.</span>
           </div>
-          <div style={{ position: 'absolute', bottom: '-5px', left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: '8px', height: '8px', background: '#060B07', border: '1px solid #1A2A1E', borderTop: 'none', borderLeft: 'none' }} />
-        </div>
+        </div>,
+        document.body
       )}
-    </span>
+    </>
   )
+}
+
+// ─── Count-up hook ────────────────────────────────────────────────────────────
+
+function useCountUp(target, duration = 550) {
+  const [value, setValue] = useState(0)
+  const rafRef = useRef(null)
+  useEffect(() => {
+    setValue(0)
+    const start = performance.now()
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setValue(target * eased)
+      if (t < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+    const timer = setTimeout(() => { rafRef.current = requestAnimationFrame(tick) }, 40)
+    return () => { clearTimeout(timer); cancelAnimationFrame(rafRef.current) }
+  }, [target, duration])
+  return value
 }
 
 // ─── Project modal (dynamic position, right of marker) ────────────────────────
@@ -410,6 +440,7 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
   const band = ratingBand(project.rating)
   const bg   = BADGE_BG[band]
   const fg   = BADGE_FG[band]
+  const animatedPrice = useCountUp(project.price)
 
   const posStyle = useMemo(() => {
     if (!markerPos) return { top: 72, right: 16 }
@@ -465,7 +496,7 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
             <SpotPriceInfo />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-            <span style={{ fontSize: '20px', fontWeight: '400', color: '#C8A23A', fontFamily: FONT_MONO, letterSpacing: '-0.03em', lineHeight: 1 }}>${project.price}</span>
+            <span style={{ fontSize: '20px', fontWeight: '400', color: '#C8A23A', fontFamily: FONT_MONO, letterSpacing: '-0.03em', lineHeight: 1 }}>${animatedPrice.toFixed(1)}</span>
             <span style={{ fontSize: '9px', color: '#3A5848', fontFamily: FONT_SANS }}>/tCO₂e</span>
           </div>
         </div>
