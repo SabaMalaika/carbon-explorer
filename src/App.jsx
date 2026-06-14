@@ -172,6 +172,10 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
     const t = setTimeout(() => {
       map.invalidateSize(false)
       map.fitBounds([[-68, -176], [82, 176]], { padding: [0, 0], animate: false })
+      // Ensure world tiles fill full container width (no black side panels)
+      const sz = map.getSize()
+      const minFillZoom = Math.ceil(Math.log2(sz.x / 256))
+      if (map.getZoom() < minFillZoom) map.setZoom(minFillZoom, { animate: false })
       map.setMinZoom(map.getZoom())
     }, 0)
     map.on('click', onMapClick)
@@ -291,26 +295,46 @@ function CoBenefitDots({ score }) {
 
 // ─── PremiumDial ──────────────────────────────────────────────────────────────
 
-function PremiumDial({ project, regionalStats }) {
-  const [live, setLive] = useState(false)
+function easeOutElastic(t) {
+  if (t <= 0) return 0
+  if (t >= 1) return 1
+  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1
+}
 
-  useEffect(() => {
-    const t = setTimeout(() => setLive(true), 60)
-    return () => clearTimeout(t)
-  }, [])
+function PremiumDial({ project, regionalStats }) {
+  const [currentAngle, setCurrentAngle] = useState(90) // 90° = pointing up = 12 o'clock
+  const animRef = useRef(null)
+  const delayRef = useRef(null)
 
   if (!regionalStats || regionalStats.max === regionalStats.min) return null
   const { min, max, avg } = regionalStats
   const position = Math.max(0, Math.min(1, (project.price - min) / (max - min)))
-  const angleDeg = 180 - position * 180
+  const finalAngle = 180 - position * 180
   const pct = Math.round(((project.price - avg) / avg) * 100)
   const pos = pct >= 0
 
-  const cx = 110, cy = 105, r = 88, needleR = 78
+  useEffect(() => {
+    setCurrentAngle(90) // reset to 12 o'clock when project changes
+    const duration = 900
+    delayRef.current = setTimeout(() => {
+      const startTime = performance.now()
+      function frame(now) {
+        const t = Math.min(1, (now - startTime) / duration)
+        setCurrentAngle(90 + (finalAngle - 90) * easeOutElastic(t))
+        if (t < 1) animRef.current = requestAnimationFrame(frame)
+      }
+      animRef.current = requestAnimationFrame(frame)
+    }, 80)
+    return () => {
+      clearTimeout(delayRef.current)
+      cancelAnimationFrame(animRef.current)
+    }
+  }, [finalAngle])
 
-  // CSS rotation: needle drawn pointing up, rotated to final angle
-  // angleDeg=0 (right) → cssRot=90°, angleDeg=90 (up) → cssRot=0°, angleDeg=180 (left) → cssRot=-90°
-  const finalCssRotation = 90 - angleDeg
+  const cx = 110, cy = 105, r = 88, needleR = 78
+  const angleRad = (currentAngle * Math.PI) / 180
+  const tipX = cx + needleR * Math.cos(angleRad)
+  const tipY = cy - needleR * Math.sin(angleRad)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -323,18 +347,9 @@ function PremiumDial({ project, regionalStats }) {
             <stop offset="100%" stopColor="#0F6E56" />
           </linearGradient>
         </defs>
-        {/* Track */}
         <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`} fill="none" stroke="#162018" strokeWidth="10" strokeLinecap="round" />
         <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`} fill="none" stroke="url(#dialGrad)" strokeWidth="8" strokeLinecap="round" />
-        {/* Animated needle — drawn pointing up, CSS-rotated to final angle */}
-        <g style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          transform: `rotate(${live ? finalCssRotation : 0}deg)`,
-          transition: live ? 'transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
-        }}>
-          <line x1={cx} y1={cy} x2={cx} y2={cy - needleR} stroke="#D8E6DF" strokeWidth="2.5" strokeLinecap="round" />
-        </g>
-        {/* Pivot dot (rendered above needle) */}
+        <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="#D8E6DF" strokeWidth="2.5" strokeLinecap="round" />
         <circle cx={cx} cy={cy} r="6" fill="#1D9E75" />
         <circle cx={cx} cy={cy} r="2.5" fill="#D8E6DF" />
         <text x={cx-r+4} y={cy+16} fill="#4A6858" fontSize="10" textAnchor="middle" fontFamily={FONT_SANS}>low</text>
@@ -559,7 +574,6 @@ function WalkthroughModal({ onClose }) {
             {[
               { key: 'Circle markers', val: 'Each dot = one carbon project. Circle size scales with spot price — larger = more expensive.', c: '#1D9E75' },
               { key: 'Click a marker', val: "Zooms into that project's location and opens a detail card next to the marker.", c: '#1D9E75' },
-              { key: 'Hover a country', val: 'Highlights the country boundary. Country labels appear when zoomed in.', c: '#1D9E75' },
               { key: 'Click map background', val: 'Closes the detail card and returns to full overview.', c: '#5DCAA5' },
             ].map(({ key, val, c }) => (
               <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>

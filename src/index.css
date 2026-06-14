@@ -69,6 +69,15 @@ body {
 .leaflet-interactive:focus { outline: none !important; }
 .leaflet-container *:focus { outline: none !important; }
 
+/* Prevent custom markers from visually scaling during Leaflet CSS zoom animation */
+.leaflet-zoom-anim .leaflet-markerspane-pane .leaflet-zoom-animated {
+  opacity: 0;
+  transition: none !important;
+}
+.leaflet-markerspane-pane .leaflet-zoom-animated {
+  transition: opacity 0.18s ease 0.05s;
+}
+
 /* Panel scrollbar */
 .panel-scroll::-webkit-scrollbar { width: 3px; }
 .panel-scroll::-webkit-scrollbar-track { background: transparent; }
