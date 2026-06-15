@@ -160,7 +160,7 @@ function CreatePanes() {
     }
     // Tooltips must render above markers
     const tooltipPane = map.getPane('tooltipPane')
-    if (tooltipPane) tooltipPane.style.zIndex = 660
+    if (tooltipPane) tooltipPane.style.zIndex = 750
   }, [map])
   return null
 }
@@ -781,17 +781,10 @@ export default function App() {
     fetch(GEOJSON_URL).then(r => r.json()).then(setWorldGeo).catch(() => {})
   }, [])
 
-  const onEachCountry = useCallback((feature, layer) => {
-    const name = feature.properties?.name || feature.properties?.NAME || ''
+  const onEachCountry = useCallback((_feature, layer) => {
     layer.on({
-      mouseover(e) {
-        e.target.setStyle(COUNTRY_STYLE_HOVER)
-        if (name) layer.bindTooltip(name, { sticky: true, direction: 'auto' }).openTooltip()
-      },
-      mouseout(e) {
-        e.target.setStyle(COUNTRY_STYLE_DEFAULT)
-        layer.closeTooltip()
-      },
+      mouseover(e) { e.target.setStyle(COUNTRY_STYLE_HOVER) },
+      mouseout(e)  { e.target.setStyle(COUNTRY_STYLE_DEFAULT) },
     })
   }, [])
 
