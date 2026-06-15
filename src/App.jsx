@@ -173,8 +173,8 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
     onMapReady(map)
     const t = setTimeout(() => {
       map.invalidateSize(false)
-      map.setView([20, 10], 2, { animate: false })
-      map.setMinZoom(2)
+      map.fitBounds([[-58, -178], [80, 178]], { padding: [0, 0], animate: false })
+      map.setMinZoom(map.getZoom())
     }, 0)
     map.on('click', onMapClick)
     return () => { clearTimeout(t); map.off('click', onMapClick) }
@@ -818,7 +818,7 @@ export default function App() {
       {/* ── Map — fills entire viewport ─────────────────────── */}
       <div style={{ position: 'absolute', inset: 0 }}>
         <MapContainer
-          center={[20, 10]} zoom={2} minZoom={1}
+          center={[20, 10]} zoom={2} minZoom={1} zoomSnap={0}
           style={{ width: '100%', height: '100%' }}
           zoomControl={true}
           worldCopyJump={false}
