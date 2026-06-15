@@ -837,23 +837,20 @@ export default function App() {
             onMapClick={onMapClick}
           />
 
-          {/* ESRI Dark Gray Base — no labels */}
+          {/* CartoDB dark base — truly no labels */}
           <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-            attribution='Tiles &copy; <a href="https://esri.com">Esri</a>'
-            maxZoom={16}
+            url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+            maxZoom={19}
             noWrap={true}
-            bounds={[[-90, -180], [90, 180]]}
           />
-          {/* CartoDB white labels — crisp pure white on transparent, replaces muddy ESRI reference */}
+          {/* CartoDB white labels only — on separate pane above markers */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://carto.com">CARTO</a>'
             maxZoom={19}
             minZoom={3}
             noWrap={true}
             pane="labelsPane"
-            bounds={[[-90, -180], [90, 180]]}
           />
 
           {worldGeo && (
