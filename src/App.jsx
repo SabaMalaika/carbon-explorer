@@ -173,8 +173,6 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
     onMapReady(map)
     const t = setTimeout(() => {
       map.invalidateSize(false)
-      map.fitBounds([[-58, -178], [80, 178]], { padding: [0, 0], animate: false })
-      map.setMinZoom(map.getZoom())
     }, 0)
     map.on('click', onMapClick)
     return () => { clearTimeout(t); map.off('click', onMapClick) }
@@ -818,12 +816,10 @@ export default function App() {
       {/* ── Map — fills entire viewport ─────────────────────── */}
       <div style={{ position: 'absolute', inset: 0 }}>
         <MapContainer
-          center={[20, 10]} zoom={2} minZoom={1} zoomSnap={0}
+          center={[20, 10]} zoom={2} minZoom={2} zoomSnap={0.25}
           style={{ width: '100%', height: '100%' }}
           zoomControl={true}
-          worldCopyJump={false}
-          maxBoundsViscosity={0.9}
-          maxBounds={[[-80, -185], [88, 185]]}
+          worldCopyJump={true}
         >
           <CreatePanes />
           <MapController
@@ -838,14 +834,12 @@ export default function App() {
             url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             maxZoom={19}
-            noWrap={true}
           />
           {/* CartoDB white labels only — on separate pane above markers */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
             maxZoom={19}
             minZoom={3}
-            noWrap={true}
             pane="labelsPane"
           />
 
