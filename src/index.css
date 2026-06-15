@@ -66,16 +66,13 @@ body {
 .leaflet-interactive:focus { outline: none !important; }
 .leaflet-container *:focus { outline: none !important; }
 
-/* Sidebar overlay — CSS transition (animation won't re-trigger on class change) */
+/* Sidebar overlay — animation on mount (element is conditionally rendered) */
 .sidebar-panel {
-  transform: translateX(100%);
-  opacity: 0;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity   0.4s  ease;
+  animation: sidebarSlideIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.sidebar-panel.slide-in {
-  transform: translateX(0);
-  opacity: 1;
+@keyframes sidebarSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 /* Project modal */

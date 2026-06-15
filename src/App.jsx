@@ -297,10 +297,8 @@ function CoBenefitDots({ score }) {
 
 // ─── PremiumDial ──────────────────────────────────────────────────────────────
 
-function easeOutElastic(t) {
-  if (t <= 0) return 0
-  if (t >= 1) return 1
-  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1
+function easeOutQuart(t) {
+  return 1 - Math.pow(1 - t, 4)
 }
 
 function PremiumDial({ project, regionalStats }) {
@@ -317,12 +315,12 @@ function PremiumDial({ project, regionalStats }) {
 
   useEffect(() => {
     setCurrentAngle(90) // reset to 12 o'clock when project changes
-    const duration = 900
+    const duration = 1800
     delayRef.current = setTimeout(() => {
       const startTime = performance.now()
       function frame(now) {
         const t = Math.min(1, (now - startTime) / duration)
-        setCurrentAngle(90 + (finalAngle - 90) * easeOutElastic(t))
+        setCurrentAngle(90 + (finalAngle - 90) * easeOutQuart(t))
         if (t < 1) animRef.current = requestAnimationFrame(frame)
       }
       animRef.current = requestAnimationFrame(frame)
@@ -854,10 +852,11 @@ export default function App() {
             noWrap={true}
             bounds={[[-90, -180], [90, 180]]}
           />
-          {/* English labels — only visible at zoom 3+ to avoid clutter at world view */}
+          {/* CartoDB white labels — crisp pure white on transparent, replaces muddy ESRI reference */}
           <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={16}
+            url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://carto.com">CARTO</a>'
+            maxZoom={19}
             minZoom={3}
             noWrap={true}
             pane="labelsPane"
@@ -926,7 +925,7 @@ export default function App() {
         </div>
 
         {/* Project modal */}
-        {selected && (
+        {selected && markerPos && (
           <ProjectModal
             project={selected}
             regionalStats={regionalStats}
@@ -937,8 +936,8 @@ export default function App() {
       </div>
 
       {/* ── Sidebar — glassmorphism overlay ───────────────── */}
-      <div
-        className={sidebarVisible ? 'sidebar-panel slide-in' : 'sidebar-panel'}
+      {sidebarVisible && <div
+        className="sidebar-panel"
         style={{
           position: 'absolute', top: 0, right: 0, height: '100dvh',
           width: `${SIDEBAR_W}px`, zIndex: 900,
@@ -1034,7 +1033,7 @@ export default function App() {
         <div style={{ padding: '8px 14px', borderTop: '1px solid #0E1810', fontSize: '11px', color: '#3A5848', lineHeight: 1.5, flexShrink: 0, marginTop: 'auto', fontFamily: FONT_SANS }}>
           Illustrative data. Calibrated to Sylvera State of Carbon Credits 2025.
         </div>
-      </div>
+      </div>}
     </div>
   )
 }
