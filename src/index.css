@@ -21,6 +21,7 @@ body {
 
 /* Leaflet overrides */
 .leaflet-container { background: #000000 !important; }
+.leaflet-top.leaflet-left { top: 62px !important; }
 .leaflet-control-zoom a {
   background: rgba(4,14,9,0.88) !important;
   color: #5A8070 !important;

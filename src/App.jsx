@@ -149,7 +149,7 @@ function CreatePanes() {
   useEffect(() => {
     if (!map.getPane('markersPane')) {
       const pane = map.createPane('markersPane')
-      pane.style.zIndex = 645
+      pane.style.zIndex = 710
       // Remove zoom animation so markers don't visually scale during flyTo
       pane.classList.remove('leaflet-zoom-animated')
     }
@@ -173,12 +173,8 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
     onMapReady(map)
     const t = setTimeout(() => {
       map.invalidateSize(false)
-      map.fitBounds([[-68, -176], [82, 176]], { padding: [0, 0], animate: false })
-      // Ensure world tiles fill full container width (no black side panels)
-      const sz = map.getSize()
-      const minFillZoom = Math.ceil(Math.log2(sz.x / 256))
-      if (map.getZoom() < minFillZoom) map.setZoom(minFillZoom, { animate: false })
-      map.setMinZoom(map.getZoom())
+      map.setView([20, 10], 2, { animate: false })
+      map.setMinZoom(2)
     }, 0)
     map.on('click', onMapClick)
     return () => { clearTimeout(t); map.off('click', onMapClick) }
@@ -872,7 +868,7 @@ export default function App() {
         <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ pointerEvents: 'none' }}>
             <div style={{
-              fontSize: '28px', fontWeight: '900', color: '#D0E8DC',
+              fontSize: '28px', fontWeight: '900', color: '#D4FF3C',
               letterSpacing: '-0.03em', fontFamily: FONT_SANS,
               textShadow: '0 2px 14px rgba(0,0,0,0.95), 0 1px 4px rgba(0,0,0,0.9)',
             }}>
