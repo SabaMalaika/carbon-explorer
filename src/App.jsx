@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css'
 
 const FONT_SANS = "'Geologica', system-ui, sans-serif"
 const FONT_MONO = "'JetBrains Mono', monospace"
+const FONT_SYNE = "'Syne', system-ui, sans-serif"
+const FONT_COND = "'Gondens', system-ui, sans-serif"
 const SIDEBAR_W = 330
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -263,8 +265,8 @@ function PillGroup({ options, value, onChange }) {
         return (
           <button key={opt} onClick={() => toggle(opt)} style={{
             background: active ? '#1D9E75' : 'transparent',
-            color: active ? '#030D07' : '#5A8070',
-            border: `1px solid ${active ? '#1D9E75' : '#1E3328'}`,
+            color: active ? '#030D07' : '#EDE0C0',
+            border: `1px solid ${active ? '#1D9E75' : 'rgba(237,224,192,0.25)'}`,
             borderRadius: '5px', padding: '3px 9px',
             fontSize: '13px', fontWeight: active ? '700' : '400',
             cursor: 'pointer', transition: 'all 0.12s',
@@ -522,145 +524,483 @@ function ProjectModal({ project, regionalStats, onClose, markerPos }) {
   )
 }
 
-// ─── Walkthrough modal (tabbed) ───────────────────────────────────────────────
+// ─── Walkthrough modal ────────────────────────────────────────────────────────
 
-const WT_TABS = [
-  { id: 'ratings', label: 'Ratings' },
-  { id: 'map',     label: 'Map' },
-  { id: 'sidebar', label: 'Sidebar' },
-  { id: 'detail',  label: 'Detail Card' },
+const WT_SLIDES_COUNT = 6
+
+function MelomysCard({ onClose }) {
+  return createPortal(
+    <>
+      <style>{`
+        @keyframes scrollReveal {
+          0%   { transform: scaleY(0.04) translateY(-8px); opacity: 0; clip-path: inset(48% 0 48% 0); }
+          50%  { opacity: 1; }
+          80%  { transform: scaleY(1.02) translateY(0); clip-path: inset(0% 0 0% 0); }
+          100% { transform: scaleY(1) translateY(0); clip-path: inset(0% 0 0% 0); }
+        }
+        .melomys-scroll { animation: scrollReveal 0.55s cubic-bezier(0.16,1,0.3,1) forwards; transform-origin: center; }
+      `}</style>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 20000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(5,12,8,0.72)', backdropFilter: 'blur(10px)',
+      }}>
+        <div className="melomys-scroll" onClick={e => e.stopPropagation()} style={{
+          width: '310px',
+          background: '#F7F2E8',
+          borderRadius: '14px',
+          border: '1.5px solid #2A1E0E',
+          cursor: 'default',
+          userSelect: 'none',
+          fontFamily: "'Georgia', 'Times New Roman', serif",
+          overflow: 'hidden',
+          boxShadow: '0 28px 72px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.25)',
+        }}>
+
+          {/* Illustration */}
+          <div style={{ width: '100%', aspectRatio: '1 / 0.88', overflow: 'hidden', position: 'relative' }}>
+            <img
+              src="/melomys.webp"
+              alt="Bramble Cay Melomys"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+            />
+            {/* Vignette */}
+            <div style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'radial-gradient(ellipse at center, transparent 55%, rgba(42,30,14,0.28) 100%)',
+            }} />
+          </div>
+
+          {/* Ruled divider */}
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ borderTop: '1px solid #2A1E0E', marginTop: '0', opacity: 0.7 }} />
+            <div style={{ borderTop: '1px solid #2A1E0E', marginTop: '3px', opacity: 0.25 }} />
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '18px 24px 10px' }}>
+            {/* Classification */}
+            <div style={{
+              fontSize: '9px', letterSpacing: '0.22em', textTransform: 'uppercase',
+              color: '#7A6030', marginBottom: '6px', fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              Rodentia · Muridae
+            </div>
+
+            {/* Name */}
+            <div style={{ fontSize: '21px', fontWeight: '700', color: '#1A1208', lineHeight: 1.1, marginBottom: '2px' }}>
+              Bramble Cay Melomys
+            </div>
+            <div style={{ fontSize: '13px', fontStyle: 'italic', color: '#5A4428', marginBottom: '14px' }}>
+              Melomys rubicola  ·  Thomas, 1924
+            </div>
+
+            {/* Description */}
+            <div style={{ fontSize: '12.5px', lineHeight: 1.72, color: '#2E2010', marginBottom: '18px' }}>
+              Endemic to a single 4-hectare coral cay in the Torres Strait. Storm-surge flooding driven by sea-level rise destroyed all vegetation and habitat. Last confirmed sighting: 2009.
+            </div>
+          </div>
+
+          {/* Ruled divider */}
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ borderTop: '1px solid #2A1E0E', opacity: 0.25 }} />
+            <div style={{ borderTop: '1px solid #2A1E0E', marginTop: '3px', opacity: 0.7 }} />
+          </div>
+
+          {/* Status footer */}
+          <div style={{ padding: '12px 24px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '8.5px', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7A6030', marginBottom: '3px' }}>
+                IUCN Status
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8B2020', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#8B2020', letterSpacing: '0.04em' }}>
+                  Extinct — 2016
+                </span>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '8.5px', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7A6030', marginBottom: '3px' }}>
+                Cause
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#2E2010' }}>
+                Climate change
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
+const HOP_SEQ = [
+  { src: '/3.png', y: 0,  dur: 110 },
+  { src: '/2.png', y: 15, dur: 80  },
+  { src: '/5.png', y: 50, dur: 110 },
+  { src: '/2.png', y: 20, dur: 80  },
+  { src: '/4.png', y: 0,  dur: 130 },
+  { src: '/1.png', y: 0,  dur: 100 },
 ]
+const MOUSE_SIZE = 96
+
+function WTMouseHopper({ slide, total }) {
+  const containerRef = useRef(null)
+  const [posX, setPosX] = useState(null)
+  const [frame, setFrame] = useState({ src: '/1.png', y: 0, dir: 1 })
+  const [cardOpen, setCardOpen] = useState(false)
+  const prevSlideRef = useRef(slide)
+  const currentDirRef = useRef(1)
+  const hopRef = useRef(null)
+
+  const zoneCenter = useCallback((idx) => {
+    if (!containerRef.current) return 0
+    const w = containerRef.current.offsetWidth
+    return (idx + 0.5) * (w / total) - MOUSE_SIZE / 2
+  }, [total])
+
+  // init position after mount
+  useEffect(() => { setPosX(zoneCenter(slide)) }, []) // eslint-disable-line
+
+  // hop on slide change
+  useEffect(() => {
+    if (posX === null) return
+    const prev = prevSlideRef.current
+    if (prev === slide) return
+    prevSlideRef.current = slide
+
+    const newDir = slide > prev ? 1 : -1
+    const oldDir = currentDirRef.current
+    clearTimeout(hopRef.current)
+
+    const startX = posX
+    const endX = zoneCenter(slide)
+    let step = 0
+
+    function nextStep() {
+      const f = HOP_SEQ[step]
+      // hold old direction for first 2 frames, flip at apex (mid-air) — least visible
+      const frameDir = step < 2 ? oldDir : newDir
+      setFrame({ src: f.src, y: f.y, dir: frameDir })
+      setPosX(startX + (endX - startX) * ((step + 1) / HOP_SEQ.length))
+      step++
+      if (step < HOP_SEQ.length) {
+        hopRef.current = setTimeout(nextStep, f.dur)
+      } else {
+        currentDirRef.current = newDir
+        setFrame({ src: '/1.png', y: 0, dir: newDir })
+        setPosX(endX)
+      }
+    }
+    nextStep()
+    return () => clearTimeout(hopRef.current)
+  }, [slide]) // eslint-disable-line
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', height: '96px', width: '100%', flexShrink: 0 }}>
+      {posX !== null && (
+        <img
+          src={frame.src}
+          alt="Bramble Cay Melomys"
+          title="Click me!"
+          onClick={() => setCardOpen(true)}
+          style={{
+            position: 'absolute',
+            bottom: frame.y,
+            left: posX,
+            width: MOUSE_SIZE,
+            height: MOUSE_SIZE,
+            objectFit: 'contain',
+            objectPosition: 'bottom center',
+            transform: frame.dir === -1 ? 'scaleX(-1)' : 'none',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        />
+      )}
+      {cardOpen && <MelomysCard onClose={() => setCardOpen(false)} />}
+    </div>
+  )
+}
+
+const PAPER_BG_STYLE = {
+  background: [
+    'radial-gradient(ellipse at 20% 30%, rgba(210,185,140,0.18) 0%, transparent 60%)',
+    'radial-gradient(ellipse at 80% 70%, rgba(180,155,110,0.12) 0%, transparent 55%)',
+    'linear-gradient(160deg, #F2E8D0 0%, #EBE0C4 30%, #E4D5B4 55%, #EAD9BB 78%, #F0E4CC 100%)',
+  ].join(', '),
+}
 
 function WalkthroughModal({ onClose }) {
   const [dontShow, setDontShow] = useState(false)
-  const [tab, setTab] = useState('ratings')
+  const [slide, setSlide] = useState(0)
+  const scrollRef = useRef(null)
 
   const close = () => {
     if (dontShow) localStorage.setItem('cpe_seen', '1')
     onClose()
   }
 
+  const goTo = (idx) => {
+    setSlide(idx)
+    if (scrollRef.current) {
+      const slides = scrollRef.current.children
+      if (slides[idx]) scrollRef.current.scrollTo({ left: slides[idx].offsetLeft, behavior: 'smooth' })
+    }
+  }
+
+  const next = () => goTo(Math.min(slide + 1, WT_SLIDES_COUNT - 1))
+  const prev = () => goTo(Math.max(slide - 1, 0))
+
+  const onScroll = () => {
+    if (!scrollRef.current) return
+    const { scrollLeft, children } = scrollRef.current
+    let closest = 0, minDist = Infinity
+    Array.from(children).forEach((el, i) => {
+      const d = Math.abs(el.offsetLeft - scrollLeft)
+      if (d < minDist) { minDist = d; closest = i }
+    })
+    setSlide(closest)
+  }
+
+  const YELLOW = '#E8C847'
+  const DARK   = '#1A1208'
+  const INK    = '#1B2E1E'
+  const MUTED  = '#7A6840'
+  const GREEN  = '#1A6B42'
+  const RED    = '#8B2020'
+  const AMBER  = '#B86820'
+  const headingStyle = { fontFamily: FONT_COND, fontWeight: '400', color: YELLOW, letterSpacing: '0.01em', lineHeight: 1.9 }
+  const subStyle     = { fontFamily: FONT_SANS, color: INK, lineHeight: 1.72, fontWeight: '300', letterSpacing: '0.005em' }
+  const labelStyle   = { fontFamily: FONT_SANS, fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '13px', color: MUTED }
+  const ratingLabel  = { fontFamily: FONT_MONO, fontSize: 'clamp(22px,3vw,36px)', fontWeight: '600', marginBottom: '14px', letterSpacing: '-0.02em' }
+  const hiGreen      = { color: GREEN, fontWeight: '700' }
+
+  const sW = {
+    flex: '0 0 100%', width: '100%', minWidth: 0,
+    height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
+    padding: '32px 48px 24px', boxSizing: 'border-box',
+    scrollSnapAlign: 'start', overflowY: 'auto',
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.85)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(6px)',
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
     }}>
       <div style={{
-        background: '#060B07', border: '1px solid #1E3328',
-        borderRadius: '14px', width: '540px', maxHeight: '88vh',
-        overflowY: 'auto', padding: '28px',
-      }} className="panel-scroll">
+        width: 'min(900px, 92vw)', height: 'min(580px, 88vh)',
+        borderRadius: '18px', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
+        position: 'relative',
+        ...PAPER_BG_STYLE,
+      }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: '22px' }}>
-          <div style={{ fontSize: '22px', fontWeight: '800', color: '#D8E6DF', fontFamily: FONT_SANS, letterSpacing: '-0.025em', marginBottom: '5px' }}>
-            Carbon Project Explorer
+      {/* Close */}
+      <button onClick={close} style={{
+        position: 'absolute', top: '16px', right: '18px', zIndex: 2,
+        background: 'rgba(0,0,0,0.10)', border: '1px solid rgba(0,0,0,0.15)',
+        borderRadius: '50%', width: '32px', height: '32px',
+        color: DARK, fontSize: '16px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+      }}>×</button>
+
+      {/* Scroll track */}
+      {/* constrainer: establishes known width so minWidth:'100%' on slides resolves correctly */}
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div ref={scrollRef} onScroll={onScroll} style={{
+        width: '100%', height: '100%', display: 'flex', overflowX: 'scroll', overflowY: 'hidden',
+        scrollSnapType: 'x mandatory', scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch',
+      }}>
+
+        {/* S1 — Hero: Ratings */}
+        <div style={{ ...sW }}>
+          <div style={{ ...headingStyle, fontSize: 'clamp(28px, 3.4vw, 44px)', marginBottom: '32px', color: '#163530', display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
+            <div>Ratings move</div>
+            <div>markets.</div>
           </div>
-          <div style={{ fontSize: '12.5px', color: '#6A9080', fontFamily: FONT_SANS }}>
-            A guide to ratings, map navigation, and data interpretation
+          <div style={{ ...subStyle, fontSize: 'clamp(14px, 1.4vw, 17px)', maxWidth: '520px' }}>
+            In carbon markets, quality isn't visible to the naked eye. A Sylvera rating changes that — translating complex project data into a single signal that buyers, sellers, and investors can act on. <span style={hiGreen}>Higher ratings don't just mean better projects. They mean better prices.</span>
+          </div>
+          <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ ...labelStyle, color: DARK }}>Scroll to explore</span>
+            <span style={{ color: DARK, fontSize: '14px' }}>→</span>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '3px', marginBottom: '22px', background: '#040807', borderRadius: '9px', padding: '3px' }}>
-          {WT_TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flex: 1, padding: '8px 6px', borderRadius: '6px',
-              background: tab === t.id ? '#0D2018' : 'transparent',
-              border: `1px solid ${tab === t.id ? '#1D9E75' : 'transparent'}`,
-              color: tab === t.id ? '#5DCAA5' : '#4A7060',
-              fontSize: '11px', fontWeight: tab === t.id ? '600' : '400',
-              cursor: 'pointer', fontFamily: FONT_SANS,
-              transition: 'all 0.15s',
-            }}>{t.label}</button>
-          ))}
-        </div>
-
-        {/* Tab: Ratings */}
-        {tab === 'ratings' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+        {/* S2 — Investment Grade cards */}
+        <div style={{ ...sW, gap: '18px' }}>
+          <div style={{ ...labelStyle, marginBottom: '2px' }}>INVESTMENT GRADE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {[
-              { band: 'AAA / AA / A',  label: 'Investment Grade',        color: '#5DCAA5', bg: '#041E12', desc: 'Highest quality. Rigorous validation, fully additional and permanent credits.' },
-              { band: 'BBB / BB',      label: 'Near Investment Grade',    color: '#5DCAA5', bg: '#071F18', desc: 'Solid quality. Strong methodology with minor data or process gaps.' },
-              { band: 'B / CCC',       label: 'Below Investment Grade',   color: '#C8C46A', bg: '#1A1A08', desc: 'Below average quality. Significant methodology or additionality concerns.' },
-              { band: 'CC / D',        label: 'Speculative / Default',    color: '#E09090', bg: '#1A0808', desc: 'High risk. Serious concerns about credit integrity or permanence.' },
-            ].map(item => (
-              <div key={item.band} style={{ background: item.bg, border: `1px solid ${item.color}22`, borderRadius: '8px', padding: '12px 14px', display: 'flex', gap: '14px' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '13px', fontWeight: '600', color: item.color, minWidth: '76px', paddingTop: '1px', flexShrink: 0 }}>{item.band}</div>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: item.color, fontFamily: FONT_SANS, marginBottom: '3px' }}>{item.label}</div>
-                  <div style={{ fontSize: '11.5px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{item.desc}</div>
+              { rating: 'AAA/AA/A', color: GREEN,  bg: 'rgba(26,107,66,0.08)',  text: 'The highest confidence rating. Demonstrate exceptional additionality, near-permanent carbon storage, and independently verified co-benefits. Command the strongest premiums in the market.' },
+              { rating: 'BBB/BB/B', color: GREEN,  bg: 'rgba(26,107,66,0.04)',  text: 'The investment-grade floor. Credits are credible and tradeable at premium prices, but carry some uncertainty — in baseline methodology, buffer pool sizing, or third-party verification depth.' },
+            ].map(({ rating, color, bg, text }) => (
+              <div key={rating} style={{ background: bg, border: `2px solid ${color}`, borderRadius: '12px', padding: '24px 22px' }}>
+                <div style={{ ...ratingLabel, color }}>{rating}</div>
+                <div style={{ ...subStyle, fontSize: '14px' }}>{text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* S3 — Below IG cards */}
+        <div style={{ ...sW, gap: '18px' }}>
+          <div style={{ ...labelStyle, marginBottom: '2px' }}>BELOW INVESTMENT GRADE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            {[
+              { rating: 'CCC/CC/C', color: AMBER, bg: 'rgba(184,104,32,0.08)', text: 'High risk. Significant methodological or permanence concerns. May still transact but typically at steep discounts.' },
+              { rating: 'D',        color: RED,   bg: 'rgba(139,32,32,0.08)',  text: 'Failed. Project has not delivered on its carbon promises. Credits at this level are effectively worthless in quality-conscious markets.' },
+            ].map(({ rating, color, bg, text }) => (
+              <div key={rating} style={{ background: bg, border: `2px solid ${color}`, borderRadius: '12px', padding: '24px 22px' }}>
+                <div style={{ ...ratingLabel, color }}>{rating}</div>
+                <div style={{ ...subStyle, fontSize: '14px' }}>{text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* S4 — Hero: Map */}
+        <div style={{ ...sW }}>
+          <div style={{ ...headingStyle, fontSize: 'clamp(24px, 3vw, 38px)', marginBottom: '32px', color: '#163530', display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
+            <div><span style={{ fontFamily: "'Big Shoulders Display', system-ui, sans-serif", fontWeight: '900', fontSize: '1em', letterSpacing: '-0.01em' }}>50</span> projects.</div>
+            <div>Every continent.</div>
+            <div>One question.</div>
+          </div>
+          <div style={{ ...subStyle, fontSize: 'clamp(14px, 1.4vw, 17px)', maxWidth: '520px' }}>
+            The projects on this map are illustrative — fictional names, real geography. Their ratings and prices are calibrated to Sylvera's publicly available research from the State of Carbon Credits 2025. <span style={hiGreen}>Think of this as a sandbox: a live model of how quality flows through a real market.</span>
+          </div>
+        </div>
+
+        {/* S5 — The Dot + Spot Price */}
+        <div style={{ ...sW, gap: '28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'start' }}>
+            {/* Dot column */}
+            <div style={{ borderLeft: `3px solid ${YELLOW}`, paddingLeft: '16px' }}>
+              <div style={{ fontFamily: FONT_SANS, fontWeight: '700', fontSize: '14px', color: DARK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>THE DOT</div>
+              <div style={{ minHeight: '76px', display: 'flex', alignItems: 'flex-end', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '18px' }}>
+                  {[
+                    { r: 10, color: '#1D9E75', label: 'IG' },
+                    { r: 16, color: '#C8A23A', label: 'sub-IG' },
+                    { r: 22, color: '#E07070', label: 'distressed' },
+                  ].map(({ r, color, label }) => (
+                    <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: r*2, height: r*2, borderRadius: '50%', background: color, boxShadow: `0 2px 8px ${color}66` }} />
+                      <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: MUTED, letterSpacing: '0.04em' }}>{label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tab: Map */}
-        {tab === 'map' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[
-              { key: 'Circle markers', val: 'Each dot = one carbon project. Circle size scales with spot price — larger = more expensive.', c: '#1D9E75' },
-              { key: 'Click a marker', val: "Zooms into that project's location and opens a detail card next to the marker.", c: '#1D9E75' },
-              { key: 'Click map background', val: 'Closes the detail card and returns to full overview.', c: '#5DCAA5' },
-            ].map(({ key, val, c }) => (
-              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '110px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
-                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
+              <div style={{ ...subStyle, fontSize: '14px' }}>Colour tells you the rating band — deep green for investment grade, amber for speculative, red for distressed. Bigger dot, more expensive credit.</div>
+            </div>
+            {/* Spot Price column */}
+            <div style={{ borderLeft: `3px solid ${YELLOW}`, paddingLeft: '16px' }}>
+              <div style={{ fontFamily: FONT_SANS, fontWeight: '700', fontSize: '14px', color: DARK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>SPOT PRICE</div>
+              <div style={{ minHeight: '76px', display: 'flex', alignItems: 'flex-end', marginBottom: '18px' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '32px', fontWeight: '900', color: AMBER, letterSpacing: '-0.02em' }}>$42<span style={{ fontSize: '16px' }}>/tCO₂e</span></div>
               </div>
-            ))}
+              <div style={{ ...subStyle, fontSize: '14px' }}>The current market rate for one tonne of CO₂ equivalent. Investment-grade projects consistently command higher spot prices — sometimes by a factor of 17× compared to the lowest-rated credits.</div>
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Tab: Sidebar */}
-        {tab === 'sidebar' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[
-              { key: 'Filters', val: 'Filter by Region, Project Type, and Rating. Multi-select works as OR — picking Africa + SE Asia shows both.', c: '#C8A23A' },
-              { key: 'Overview', val: 'Average spot price, IG premium, and project count all update live as you apply filters.', c: '#C8A23A' },
-              { key: 'Projects', val: 'Sorted by rating then price. Click any row to zoom the map and open its detail card. Collapsed by default — click the header to expand.', c: '#C8A23A' },
-            ].map(({ key, val, c }) => (
-              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: c, minWidth: '80px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
-                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
+        {/* S6 — Dial + Vintage + Co-benefits */}
+        <div style={{ ...sW, gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '22px', alignItems: 'start' }}>
+            {/* Dial column */}
+            <div style={{ borderLeft: `3px solid ${YELLOW}`, paddingLeft: '16px' }}>
+              <div style={{ fontFamily: FONT_SANS, fontWeight: '700', fontSize: '14px', color: DARK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '12px' }}>THE DIAL</div>
+              <div style={{ minHeight: '90px', display: 'flex', alignItems: 'flex-end', marginBottom: '10px' }}>
+                <svg viewBox="0 0 220 115" width="150" height="78" style={{ display: 'block' }}>
+                  <defs>
+                    <linearGradient id="wtDialGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#E09090" />
+                      <stop offset="33%" stopColor="#C8C46A" />
+                      <stop offset="66%" stopColor="#5DCAA5" />
+                      <stop offset="100%" stopColor="#0F6E56" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M 22 105 A 88 88 0 0 1 198 105" fill="none" stroke="rgba(26,46,30,0.25)" strokeWidth="10" strokeLinecap="round" />
+                  <path d="M 22 105 A 88 88 0 0 1 198 105" fill="none" stroke="url(#wtDialGrad)" strokeWidth="8" strokeLinecap="round" />
+                  <line x1="110" y1="105" x2="163" y2="50" stroke={INK} strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="110" cy="105" r="6" fill={GREEN} />
+                  <circle cx="110" cy="105" r="2.5" fill="#F2E8D0" />
+                  <text x="26" y="120" fill={MUTED} fontSize="9" textAnchor="middle" fontFamily={FONT_SANS}>low</text>
+                  <text x="194" y="120" fill={MUTED} fontSize="9" textAnchor="middle" fontFamily={FONT_SANS}>high</text>
+                </svg>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tab: Detail Card */}
-        {tab === 'detail' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[
-              { key: 'Spot price', val: 'Current market rate per tonne of CO₂ equivalent removed or avoided. Shown in amber.' },
-              { key: 'Regional dial', val: "Semicircle gauge showing where this project's price sits within its regional peer group (min → max). Needle near right = premium-priced. Animates on open." },
-              { key: 'Co-benefits', val: 'Score out of 5 for biodiversity, community welfare, and ecosystem services beyond carbon.' },
-              { key: 'Vintage', val: 'Year the carbon credits were generated, not purchased.' },
-            ].map(({ key, val }) => (
-              <div key={key} style={{ display: 'flex', gap: '14px', paddingBottom: '12px', borderBottom: '1px solid #0E1810' }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: '#5DCAA5', minWidth: '100px', paddingTop: '1px', flexShrink: 0, fontWeight: '600' }}>{key}</div>
-                <div style={{ fontSize: '12px', color: '#7A9C8C', fontFamily: FONT_SANS, lineHeight: 1.6 }}>{val}</div>
+              <div style={{ ...subStyle, fontSize: '13px' }}>Where this project sits relative to its regional peers — as a premium or discount.</div>
+            </div>
+            {/* Vintage column */}
+            <div style={{ borderLeft: `3px solid ${YELLOW}`, paddingLeft: '16px' }}>
+              <div style={{ fontFamily: FONT_SANS, fontWeight: '700', fontSize: '14px', color: DARK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '12px' }}>VINTAGE</div>
+              <div style={{ minHeight: '90px', display: 'flex', alignItems: 'flex-end', marginBottom: '10px' }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: '28px', fontWeight: '900', color: INK, letterSpacing: '-0.02em' }}>2021</div>
               </div>
+              <div style={{ ...subStyle, fontSize: '13px' }}>The year the carbon credits were issued. More recent vintages often trade at a premium because they reflect current methodologies. Older credits may carry higher permanence uncertainty.</div>
+            </div>
+            {/* Co-benefits column */}
+            <div style={{ borderLeft: `3px solid ${YELLOW}`, paddingLeft: '16px' }}>
+              <div style={{ fontFamily: FONT_SANS, fontWeight: '700', fontSize: '14px', color: DARK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '12px' }}>CO-BENEFITS</div>
+              <div style={{ minHeight: '90px', display: 'flex', alignItems: 'flex-end', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} style={{ width: '14px', height: '14px', borderRadius: '50%', background: i <= 4 ? GREEN : 'rgba(26,107,66,0.2)', border: `1.5px solid ${GREEN}` }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ ...subStyle, fontSize: '13px' }}>Projects that protect biodiversity, support communities, and advance SDGs command stronger buyer demand — particularly from corporates with ESG reporting obligations.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </div>{/* end constrainer */}
+
+      {/* Mouse hopper */}
+      <WTMouseHopper slide={slide} total={WT_SLIDES_COUNT} />
+
+      {/* Dots + arrows + explore button */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 18px 18px', gap: '12px' }}>
+        {/* Left spacer to balance explore button */}
+        <div style={{ flex: '0 0 auto', minWidth: '120px' }} />
+        {/* Center: nav */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+          <button onClick={prev} disabled={slide === 0} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: slide === 0 ? 'default' : 'pointer', color: slide === 0 ? 'rgba(0,0,0,0.18)' : DARK, padding: '4px 6px' }}>←</button>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {Array.from({ length: WT_SLIDES_COUNT }).map((_, i) => (
+              <button key={i} onClick={() => goTo(i)} style={{
+                width: i === slide ? '20px' : '7px', height: '7px',
+                borderRadius: '4px', background: i === slide ? DARK : 'rgba(0,0,0,0.22)',
+                border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s',
+              }} />
             ))}
           </div>
-        )}
-
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '20px', marginTop: '22px', borderTop: '1px solid #1E3328' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} style={{ accentColor: '#1D9E75', width: '13px', height: '13px' }} />
-            <span style={{ fontSize: '11.5px', color: '#4A7060', fontFamily: FONT_SANS }}>Don't show on next visit</span>
+          <button onClick={next} disabled={slide === WT_SLIDES_COUNT - 1} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: slide === WT_SLIDES_COUNT - 1 ? 'default' : 'pointer', color: slide === WT_SLIDES_COUNT - 1 ? 'rgba(0,0,0,0.18)' : DARK, padding: '4px 6px' }}>→</button>
+        </div>
+        {/* Right: explore */}
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} style={{ accentColor: DARK, width: '12px', height: '12px' }} />
+            <span style={{ fontSize: '11px', color: MUTED, fontFamily: FONT_SANS }}>Don't show again</span>
           </label>
           <button onClick={close} style={{
-            background: '#1D9E75', border: 'none', borderRadius: '7px',
-            color: '#020D06', fontSize: '13px', fontWeight: '700',
-            padding: '9px 22px', cursor: 'pointer', fontFamily: FONT_SANS, letterSpacing: '-0.01em',
+            background: '#000000', border: 'none', borderRadius: '8px',
+            color: '#D4FF3C', fontSize: '13px', fontWeight: '700',
+            padding: '8px 18px', cursor: 'pointer', fontFamily: FONT_SANS, letterSpacing: '-0.01em', whiteSpace: 'nowrap',
           }}>
-            Got it →
+            Explore the map →
           </button>
         </div>
+      </div>
+
       </div>
     </div>
   )
@@ -780,12 +1120,30 @@ export default function App() {
     fetch(GEOJSON_URL).then(r => r.json()).then(setWorldGeo).catch(() => {})
   }, [])
 
+  const playPop = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(520, ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(260, ctx.currentTime + 0.08)
+      gain.gain.setValueAtTime(0.08, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.1)
+      osc.onended = () => ctx.close()
+    } catch (_) {}
+  }, [])
+
   const onEachCountry = useCallback((_feature, layer) => {
     layer.on({
-      mouseover(e) { e.target.setStyle(COUNTRY_STYLE_HOVER) },
+      mouseover(e) { e.target.setStyle(COUNTRY_STYLE_HOVER); playPop() },
       mouseout(e)  { e.target.setStyle(COUNTRY_STYLE_DEFAULT) },
     })
-  }, [])
+  }, [playPop])
 
   const filtered = useMemo(() => PROJECTS.filter(p => {
     if (regionFilter.length > 0) {
@@ -930,8 +1288,8 @@ export default function App() {
         style={{
           position: 'absolute', top: 0, right: 0, height: '100dvh',
           width: `${SIDEBAR_W}px`, zIndex: 900,
-          background: 'linear-gradient(165deg, rgba(4,22,14,0.92) 0%, rgba(2,12,8,0.95) 100%)',
-          borderLeft: '1px solid rgba(29,158,117,0.15)',
+          background: 'linear-gradient(165deg, rgba(48,90,62,0.38) 0%, rgba(32,68,46,0.45) 100%)',
+          borderLeft: 'none',
           backdropFilter: 'blur(28px)',
           WebkitBackdropFilter: 'blur(28px)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -939,35 +1297,35 @@ export default function App() {
       >
 
         {/* Filters section */}
-        <div style={{ padding: '16px 14px 14px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
+        <div style={{ padding: '16px 14px 14px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
           <div style={{ marginBottom: '13px' }}>
             <SectionHeader icon={<IconFilter />} label="Filters" />
           </div>
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Region</div>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '22px', color: '#EDE0C0', marginBottom: '14px', paddingBottom: '2px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Region</div>
             <PillGroup options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
           </div>
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Project type</div>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '22px', color: '#EDE0C0', marginBottom: '14px', paddingBottom: '2px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Project type</div>
             <PillGroup options={TYPES} value={typeFilter} onChange={setTypeFilter} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#4A7060', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT_SANS }}>Rating</div>
+            <div style={{ fontSize: '22px', color: '#EDE0C0', marginBottom: '14px', paddingBottom: '2px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Rating</div>
             <PillGroup options={RATINGS} value={ratingFilter} onChange={setRatingFilter} />
           </div>
         </div>
 
         {/* Overview / Stats section */}
-        <div style={{ padding: '16px 16px 18px', borderBottom: '1px solid #0E1810', flexShrink: 0 }}>
+        <div style={{ padding: '20px 16px 18px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
           <div style={{ marginBottom: '16px' }}>
             <SectionHeader icon={<IconChart />} label="Overview" />
           </div>
 
           {avgPrice && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Avg spot price</div>
+              <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px', fontWeight: '600' }}>Avg spot price</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                <span style={{ fontSize: '56px', fontWeight: '800', color: '#C8A23A', letterSpacing: '-0.05em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
+                <span style={{ fontSize: '36px', fontWeight: '700', color: '#D4FF3C', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
                 <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
               </div>
             </div>
@@ -975,15 +1333,15 @@ export default function App() {
 
           {igPremium !== null && (
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>IG vs sub-IG premium</div>
-              <span style={{ fontSize: '38px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
+              <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px', fontWeight: '600' }}>IG vs sub-IG premium</div>
+              <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
             </div>
           )}
 
           <div>
-            <div style={{ fontSize: '12px', color: '#4A7060', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px' }}>Projects</div>
+            <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '3px', fontWeight: '600' }}>Projects</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '38px', fontWeight: '700', color: '#6A9080', letterSpacing: '-0.035em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
+              <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
               <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
             </div>
           </div>
