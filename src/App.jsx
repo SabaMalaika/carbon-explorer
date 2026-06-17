@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css'
 const FONT_SANS = "'Geologica', system-ui, sans-serif"
 const FONT_MONO = "'JetBrains Mono', monospace"
 const FONT_SYNE = "'Syne', system-ui, sans-serif"
-const FONT_COND = "'Gondens', system-ui, sans-serif"
+const FONT_COND = "'Bebas Neue', system-ui, sans-serif"
 const SIDEBAR_W = 360
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -186,6 +186,14 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
     onMapReady(map)
     if (map.zoomControl) map.zoomControl.setPosition('bottomright')
 
+    const updatePanRestriction = () => {
+      if (map.getZoom() <= map.getMinZoom()) {
+        map.setMaxBounds([[-85, -100000], [85, 100000]])
+      } else {
+        map.setMaxBounds(null)
+      }
+    }
+
     const fitWorld = () => {
       map.invalidateSize(false)
       map.fitBounds([[-68, -176], [82, 176]], { padding: [0, 0], animate: false })
@@ -193,13 +201,15 @@ function MapController({ project, onMapReady, onProjectPositioned, onMapClick })
       const minFillZoom = Math.ceil(Math.log2(sz.x / 256))
       if (map.getZoom() < minFillZoom) map.setZoom(minFillZoom, { animate: false })
       map.setMinZoom(map.getZoom())
+      updatePanRestriction()
     }
 
     const t = setTimeout(fitWorld, 0)
     const onResize = () => fitWorld()
     window.addEventListener('resize', onResize)
     map.on('click', onMapClick)
-    return () => { clearTimeout(t); window.removeEventListener('resize', onResize); map.off('click', onMapClick) }
+    map.on('zoomend', updatePanRestriction)
+    return () => { clearTimeout(t); window.removeEventListener('resize', onResize); map.off('click', onMapClick); map.off('zoomend', updatePanRestriction) }
   }, [onMapClick]) // eslint-disable-line react-hooks/exhaustive-deps — onMapReady is a stable no-op
 
   useEffect(() => {
@@ -719,7 +729,7 @@ function WTMouseHopper({ slide, total }) {
     }
     nextStep()
     return () => clearTimeout(hopRef.current)
-  // eslint-disable-next-line react-hooks/exhaustive-deps — posX snapshotted as startX; zoneCenter stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps — posX snapshotted as startX; zoneCenter stable
   }, [slide])
 
   return (
@@ -796,7 +806,7 @@ function WalkthroughModal({ onClose }) {
   const GREEN = '#1A6B42'
   const RED = '#8B2020'
   const AMBER = '#B86820'
-  const headingStyle = { fontFamily: FONT_COND, fontWeight: '400', color: YELLOW, letterSpacing: '0.01em', lineHeight: 1.9 }
+  const headingStyle = { fontFamily: FONT_COND, fontWeight: '400', color: YELLOW, letterSpacing: '0.01em', lineHeight: 1 }
   const subStyle = { fontFamily: FONT_SANS, color: INK, lineHeight: 1.72, fontWeight: '300', letterSpacing: '0.005em' }
   const labelStyle = { fontFamily: FONT_SANS, fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '14px', color: MUTED }
   const ratingLabel = { fontFamily: FONT_MONO, fontSize: 'clamp(22px,3vw,36px)', fontWeight: '600', marginBottom: '14px', letterSpacing: '-0.02em' }
@@ -844,7 +854,7 @@ function WalkthroughModal({ onClose }) {
 
             {/* S1 — Hero: Ratings */}
             <div style={{ ...sW }}>
-              <div style={{ ...headingStyle, fontSize: 'clamp(28px, 3.4vw, 44px)', marginBottom: '32px', color: '#163530' }}>
+              <div style={{ ...headingStyle, fontSize: 'clamp(52px, 6vw, 80px)', marginBottom: '32px', color: '#163530' }}>
                 Ratings move markets.
               </div>
               <div style={{ ...subStyle, fontSize: 'clamp(14px, 1.4vw, 17px)', maxWidth: '520px' }}>
@@ -890,9 +900,8 @@ function WalkthroughModal({ onClose }) {
 
             {/* S4 — Hero: Map */}
             <div style={{ ...sW }}>
-              <div style={{ ...headingStyle, fontSize: 'clamp(28px, 3.4vw, 44px)', marginBottom: '32px', color: '#163530', display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
-                <div><span style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif", fontSize: '1.8em', verticalAlign: 'baseline', lineHeight: 1 }}>50</span> projects.</div>
-                <div>Every continent. One question.</div>
+              <div style={{ ...headingStyle, fontSize: 'clamp(52px, 6vw, 80px)', marginBottom: '32px', color: '#163530', display: 'flex', flexDirection: 'column', gap: '0.15em' }}>
+                <div>50 Projects. Every continent. One question.</div>
               </div>
               <div style={{ ...subStyle, fontSize: 'clamp(14px, 1.4vw, 17px)', maxWidth: '600px' }}>
                 The projects on this map are illustrative — fictional names, real geography. Their ratings and prices are calibrated to Sylvera's publicly available research from the State of Carbon Credits 2025. <span style={hiGreen}>Think of this as a sandbox: a live model of how quality flows through a real market.</span>
@@ -1074,7 +1083,7 @@ function SectionHeader({ icon, label, collapsible, open, onToggle }) {
   const inner = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#1D9E75' }}>
       {icon}
-      <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS }}>
+      <span style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT_SANS }}>
         {label}
       </span>
       {collapsible && (
@@ -1211,6 +1220,7 @@ export default function App() {
           style={{ width: '100%', height: '100%' }}
           zoomControl={true}
           worldCopyJump={true}
+          maxBoundsViscosity={1.0}
         >
           <CreatePanes />
           <MapController
@@ -1323,11 +1333,11 @@ export default function App() {
       )}
 
       {sidebarVisible && <div style={{
-          position: 'absolute', top: 0, right: 0, height: '100dvh',
-          width: `${SIDEBAR_W}px`, zIndex: 900,
-          transform: sidebarCollapsed ? `translateX(${SIDEBAR_W}px)` : 'translateX(0)',
-          transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}>
+        position: 'absolute', top: 0, right: 0, height: '100dvh',
+        width: `${SIDEBAR_W}px`, zIndex: 900,
+        transform: sidebarCollapsed ? `translateX(${SIDEBAR_W}px)` : 'translateX(0)',
+        transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}>
         <div
           className="sidebar-panel"
           style={{
@@ -1339,98 +1349,98 @@ export default function App() {
           }}
         >
 
-        {/* Filters section */}
-        <div style={{ padding: '20px 18px 18px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <SectionHeader icon={<IconFilter />} label="Filters" />
-            <button
-              onClick={() => setSidebarCollapsed(true)}
-              title="Collapse sidebar"
-              style={{
-                background: 'none', border: '1px solid rgba(29,158,117,0.25)',
-                borderRadius: '6px', color: '#1D9E75', cursor: 'pointer',
-                fontSize: '13px', width: '28px', height: '26px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: 0.7, transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
-            >›</button>
-          </div>
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '15px', color: '#EDE0C0', marginBottom: '24px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Region</div>
-            <PillGroup options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
-          </div>
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '15px', color: '#EDE0C0', marginBottom: '24px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Project type</div>
-            <PillGroup options={TYPES} value={typeFilter} onChange={setTypeFilter} />
-          </div>
-          <div>
-            <div style={{ fontSize: '15px', color: '#EDE0C0', marginBottom: '24px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Rating</div>
-            <PillGroup options={RATINGS} value={ratingFilter} onChange={setRatingFilter} />
-          </div>
-        </div>
-
-        {/* Overview / Stats section */}
-        <div style={{ padding: '24px 18px 22px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
-          <div style={{ marginBottom: '18px' }}>
-            <SectionHeader icon={<IconChart />} label="Overview" />
+          {/* Filters section */}
+          <div style={{ padding: '20px 18px 18px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <SectionHeader icon={<IconFilter />} label="Filters" />
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                title="Collapse sidebar"
+                style={{
+                  background: 'none', border: '1px solid rgba(29,158,117,0.25)',
+                  borderRadius: '6px', color: '#1D9E75', cursor: 'pointer',
+                  fontSize: '13px', width: '28px', height: '26px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: 0.7, transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+              >›</button>
+            </div>
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '26px', color: '#EDE0C0', marginBottom: '8px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Region</div>
+              <PillGroup options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
+            </div>
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '26px', color: '#EDE0C0', marginBottom: '8px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Project type</div>
+              <PillGroup options={TYPES} value={typeFilter} onChange={setTypeFilter} />
+            </div>
+            <div>
+              <div style={{ fontSize: '26px', color: '#EDE0C0', marginBottom: '8px', fontWeight: '400', fontFamily: FONT_COND, letterSpacing: '0.01em' }}>Rating</div>
+              <PillGroup options={RATINGS} value={ratingFilter} onChange={setRatingFilter} />
+            </div>
           </div>
 
-          {avgPrice && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>Avg spot price</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                <span style={{ fontSize: '36px', fontWeight: '700', color: '#D4FF3C', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
-                <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
+          {/* Overview / Stats section */}
+          <div style={{ padding: '24px 18px 22px', borderBottom: '1px solid rgba(232,223,192,0.08)', flexShrink: 0 }}>
+            <div style={{ marginBottom: '18px' }}>
+              <SectionHeader icon={<IconChart />} label="Overview" />
+            </div>
+
+            {avgPrice && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>Avg spot price</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                  <span style={{ fontSize: '36px', fontWeight: '700', color: '#D4FF3C', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>${avgPrice}</span>
+                  <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS, paddingBottom: '6px' }}>/tCO₂e</span>
+                </div>
+              </div>
+            )}
+
+            {igPremium !== null && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>IG vs sub-IG premium</div>
+                <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>Projects</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
+                <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
               </div>
             </div>
-          )}
-
-          {igPremium !== null && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>IG vs sub-IG premium</div>
-              <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>+{igPremium}%</span>
-            </div>
-          )}
-
-          <div>
-            <div style={{ fontSize: '11px', color: '#EDE0C0', textTransform: 'uppercase', letterSpacing: '0.10em', fontFamily: FONT_SANS, marginBottom: '5px', fontWeight: '600' }}>Projects</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '36px', fontWeight: '700', color: '#1D9E75', letterSpacing: '-0.04em', lineHeight: 1, fontFamily: FONT_MONO }}>{filtered.length}</span>
-              <span style={{ fontSize: '11px', color: '#3A5848', fontFamily: FONT_SANS }}>of {PROJECTS.length}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Projects section — collapsible */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px 18px 12px', flexShrink: 0 }}>
-            <SectionHeader
-              icon={<IconList />}
-              label={`Projects (${filtered.length})`}
-              collapsible
-              open={projectsOpen}
-              onToggle={() => setProjectsOpen(o => !o)}
-            />
           </div>
 
-          {projectsOpen && (
-            <div style={{ padding: '0 10px 0' }}>
-              {sortedFiltered.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '28px 12px', color: '#3A5848', fontSize: '12px', fontFamily: FONT_SANS }}>No projects match filters</div>
-              ) : sortedFiltered.map(p => (
-                <ProjectRow
-                  key={p.name}
-                  project={p}
-                  isSelected={selected?.name === p.name}
-                  onClick={() => onSelect(p)}
-                />
-              ))}
-              <div style={{ height: '12px' }} />
+          {/* Projects section — collapsible */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 18px 12px', flexShrink: 0 }}>
+              <SectionHeader
+                icon={<IconList />}
+                label={`Projects (${filtered.length})`}
+                collapsible
+                open={projectsOpen}
+                onToggle={() => setProjectsOpen(o => !o)}
+              />
             </div>
-          )}
-        </div>
+
+            {projectsOpen && (
+              <div style={{ padding: '0 10px 0' }}>
+                {sortedFiltered.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '28px 12px', color: '#3A5848', fontSize: '12px', fontFamily: FONT_SANS }}>No projects match filters</div>
+                ) : sortedFiltered.map(p => (
+                  <ProjectRow
+                    key={p.name}
+                    project={p}
+                    isSelected={selected?.name === p.name}
+                    onClick={() => onSelect(p)}
+                  />
+                ))}
+                <div style={{ height: '12px' }} />
+              </div>
+            )}
+          </div>
 
         </div>
       </div>}
