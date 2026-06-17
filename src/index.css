@@ -21,7 +21,14 @@ body {
 
 /* Leaflet overrides */
 .leaflet-container { background: #000000 !important; }
-.leaflet-top.leaflet-left { top: 62px !important; }
+.leaflet-bottom.leaflet-right {
+  margin-right: 16px !important;
+  margin-bottom: 28px !important;
+  transition: margin-right 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sidebar-open .leaflet-bottom.leaflet-right {
+  margin-right: calc(360px + 16px) !important;
+}
 .leaflet-control-zoom a {
   background: rgba(4,14,9,0.88) !important;
   color: #5A8070 !important;
@@ -92,11 +99,3 @@ body {
 .panel-scroll::-webkit-scrollbar-thumb { background: rgba(29,158,117,0.25); border-radius: 2px; }
 .panel-scroll::-webkit-scrollbar-thumb:hover { background: #1D9E75; }
 
-/* Prevent custom markers from visually scaling during Leaflet CSS zoom animation */
-.leaflet-zoom-anim .leaflet-markerspane-pane .leaflet-zoom-animated {
-  opacity: 0;
-  transition: none !important;
-}
-.leaflet-markerspane-pane .leaflet-zoom-animated {
-  transition: opacity 0.18s ease 0.05s;
-}
